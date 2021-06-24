@@ -15,9 +15,8 @@ class Login extends CI_Controller{
     function verify(){
         $this->load->model('admin');
         $check = $this->admin->validate();
-
-        if($check){
-            // echo "Credentials are correct.";
+        
+        if(count($check) > 0){
             $this->session->set_userdata('admin','1');
             redirect('admin/dashboard');
 

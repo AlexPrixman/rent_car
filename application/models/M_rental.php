@@ -5,7 +5,7 @@ class M_rental extends CI_Model{
     }
     
     function get_data($table){
-        return $this->db->get($table); //this is the read function on the model.
+        return $this->db->get($table); 
     }
     
     function insert_data($data, $table){
