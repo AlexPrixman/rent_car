@@ -75,7 +75,7 @@ $query_builder = TRUE;
 
 $db['default'] = array(
 	'dsn'	=> '',
-	'hostname' => 'mysqli',
+	'hostname' => 'mysql',
 	'username' => 'eventura',
 	'password' => '0102',
 	'database' => 'default_schem',
