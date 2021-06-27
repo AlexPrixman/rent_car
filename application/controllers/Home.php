@@ -4,32 +4,24 @@ defined('BASEPATH') OR exit('no direct script access allowed');
 class Home extends CI_Controller{
     function __construct(){
         parent::__construct();
-        $this->load->model('m_rental');
-        $this->load->helper('url', 'form');
-        $this->load->library('form_validation');
     }
 
     //This is the function for the admin dashboard display
     function index(){
-        $data['customer'] = $this->db->query("select * from customer order by customer_id desc limit 3")->result(); //featuring new customers
-        $data['car'] = $this->db->query("select * from car order by car_id desc limit 3")->result(); //featuring a new car
-        $data['car_category'] = $this->db->query("select * from car_category order by cat_id desc limit 3")->result(); //featuring a new car
-        $this->load->view('admin/header');
-        $this->load->view('admin/index',$data);
-        $this->load->view('admin/footer');
+        $this->load->view('admin/login');
     }
 
     //Car CRUD function
     function car(){
         $data['car'] = $this->m_rental->get_data('car')->result(); //This is the read_function on the controller.
-        $this->load->view('admin/header');
+        $this->load->view('header');
         $this->load->view('admin/car',$data);
-        $this->load->view('admin/footer');
+        $this->load->view('footer');
     }
     function add_car(){
-        $this->load->view('admin/header');
+        $this->load->view('header');
         $this->load->view('admin/add_car');
-        $this->load->view('admin/footer');
+        $this->load->view('footer');
     }
     //Over here we admin the cars
     function add_car_act(){
@@ -60,20 +52,20 @@ class Home extends CI_Controller{
                 'model_desc'    => $model_desc
             );
             $this->m_rental->insert_data($data, 'car');
-            redirect(base_url().'index.php/admin/car');
+            redirect(base_url().'home/car');
         } else { 
-            $this->load->view('admin/header');
+            $this->load->view('header');
             $this->load->view('admin/add_car');
-            $this->load->view('admin/footer');
+            $this->load->view('footer');
         } 
     }
 
     function edit_car($car_id){
         $where = array('car_id' => $car_id);
         $data['car'] = $this->m_rental->edit_data($where,'car')->result();
-        $this->load->view('admin/header');
+        $this->load->view('header');
         $this->load->view('admin/edit_car',$data);
-        $this->load->view('admin/footer');
+        $this->load->view('footer');
     }
 
     function update_car(){
@@ -106,32 +98,32 @@ class Home extends CI_Controller{
             );
             
             $this->m_rental->update_data($where, $data, 'car');
-            redirect(base_url().'index.php/admin/car');
+            redirect(base_url().'home/car');
         } else {
             $where = array('car_id' => $car_id);
             $data['car'] = $this->m_rental->edit_data($where,'car')->result();
-            $this->load->view('admin/header');
+            $this->load->view('header');
             $this->load->view('admin/edit_car',$data);
-            $this->load->view('admin/footer');
+            $this->load->view('footer');
         }
     }
     function delete_car($car_id){
         $where = array('car_id' => $car_id);
         $this->m_rental->delete_data($where, 'car');
-        redirect(base_url().'index.php/admin/car');
+        redirect(base_url().'home/car');
     }
 
     //This is the Customer CRUD function
     function customer(){
         $data['customer'] = $this->m_rental->get_data('customer')->result();
-        $this->load->view('admin/header');
+        $this->load->view('header');
         $this->load->view('admin/customer',$data);
-        $this->load->view('admin/footer');
+        $this->load->view('footer');
     }
     function add_customer(){
-        $this->load->view('admin/header');
+        $this->load->view('header');
         $this->load->view('admin/add_customer');
-        $this->load->view('admin/footer');
+        $this->load->view('footer');
     }
     function add_customer_act(){
         $customer_id                = $this->input->post('customer_id');
@@ -156,19 +148,19 @@ class Home extends CI_Controller{
             );
             
             $this->m_rental->insert_data($data, 'customer');
-            redirect(base_url().'index.php/admin/customer');
+            redirect(base_url().'home/customer');
         } else {
-            $this->load->view('admin/header');
+            $this->load->view('header');
             $this->load->view('admin/add_customer');
-            $this->load->view('admin/footer');
+            $this->load->view('footer');
         }
     }
     function edit_customer($customer_id){
         $where = array('customer_id' => $customer_id);
         $data['customer'] = $this->m_rental->edit_data($where,'customer')->result();
-        $this->load->view('admin/header');
+        $this->load->view('header');
         $this->load->view('admin/edit_customer',$data);
-        $this->load->view('admin/footer');
+        $this->load->view('footer');
     }
     function update_customer(){
         $customer_id                = $this->input->post('customer_id');
@@ -194,33 +186,33 @@ class Home extends CI_Controller{
             );
             
             $this->m_rental->update_data($where, $data, 'customer');
-            redirect(base_url().'index.php/admin/customer');
+            redirect(base_url().'home/employee');
         } else {
             $where = array('customer_id' => $customer_id);
             $data['customer'] = $this->m_rental->edit_data($where,'customer')->result();
-            $this->load->view('admin/header');
+            $this->load->view('header');
             $this->load->view('admin/edit_customer',$data);
-            $this->load->view('admin/footer');
+            $this->load->view('footer');
         }
     }    
     function delete_customer($customer_id){
         $where = array('customer_id' => $customer_id);
         $this->m_rental->delete_data($where, 'customer');
-        redirect(base_url().'index.php/admin/customer');
+        redirect(base_url().'home/customer');
     }
 
     //Here we are going to administer the employees information
     function employee(){
         $data['employee'] = $this->m_rental->get_data('employee')->result();
-        $this->load->view('admin/header');
+        $this->load->view('header');
         $this->load->view('admin/employee',$data);
-        $this->load->view('admin/footer');
+        $this->load->view('footer');
     }
 
     function add_employee(){
-        $this->load->view('admin/header');
+        $this->load->view('header');
         $this->load->view('admin/add_employee');
-        $this->load->view('admin/footer');
+        $this->load->view('footer');
     }
     
     function add_employee_act(){
@@ -246,20 +238,20 @@ class Home extends CI_Controller{
             );
             
             $this->m_rental->insert_data($data, 'employee');
-            redirect(base_url().'index.php/admin/employee');
+            redirect(base_url().'home/employee');
         } else {
-            $this->load->view('admin/header');
+            $this->load->view('header');
             $this->load->view('admin/add_employee');
-            $this->load->view('admin/footer');
+            $this->load->view('footer');
         }
     }
 
     function edit_employee($employee_id){
         $where = array('employee_id' => $employee_id);
         $data['employee'] = $this->m_rental->edit_data($where,'employee')->result();
-        $this->load->view('admin/header');
+        $this->load->view('header');
         $this->load->view('admin/edit_employee',$data);
-        $this->load->view('admin/footer');
+        $this->load->view('footer');
     }
 
     function update_employee(){
@@ -286,27 +278,27 @@ class Home extends CI_Controller{
             );
             
             $this->m_rental->update_data($where, $data, 'employee');
-            redirect(base_url().'index.php/admin/employee');
+            redirect(base_url().'home/employee');
         } else {
             $where = array('employee_id' => $employee_id);
             $data['employee'] = $this->m_rental->edit_data($where,'employee')->result();
-            $this->load->view('admin/header');
+            $this->load->view('header');
             $this->load->view('admin/edit_employee',$data);
-            $this->load->view('admin/footer');
+            $this->load->view('footer');
         }
     }
 
     function delete_employee($employee_id){
         $where = array('employee_id' => $employee_id);
         $this->m_rental->delete_data($where, 'employee');
-        redirect(base_url().'index.php/admin/employee');
+        redirect(base_url().'home/employee');
     } 
 
     function category(){
         $data['car_category'] = $this->m_rental->get_data('car_category')->result();
-        $this->load->view('admin/header');
+        $this->load->view('header');
         $this->load->view('admin/category',$data);
-        $this->load->view('admin/footer');
+        $this->load->view('footer');
     } 
 
     function add_category_act(){
@@ -324,20 +316,20 @@ class Home extends CI_Controller{
             );
             
             $this->m_rental->insert_data($data, 'car_category');
-            redirect(base_url().'index.php/admin/category');
+            redirect(base_url().'home/category');
         } else {
-            $this->load->view('admin/header');
+            $this->load->view('header');
             $this->load->view('admin/add_category');
-            $this->load->view('admin/footer');
+            $this->load->view('footer');
         }
     }
 
     function edit_category($cat_id){
         $where = array('cat_id' => $cat_id);
         $data['car_category'] = $this->m_rental->edit_data($where,'car_category')->result();
-        $this->load->view('admin/header');
+        $this->load->view('header');
         $this->load->view('admin/edit_category',$data);
-        $this->load->view('admin/footer');
+        $this->load->view('footer');
     }
 
     function update_category(){
@@ -356,20 +348,20 @@ class Home extends CI_Controller{
             );
             
             $this->m_rental->update_data($where, $data, 'car_category');
-            redirect(base_url().'index.php/admin/category');
+            redirect(base_url().'home/category');
         } else {
             $where = array('cat_id' => $cat_id);
             $data['car_category'] = $this->m_rental->edit_data($where,'car_category')->result();
-            $this->load->view('admin/header');
+            $this->load->view('header');
             $this->load->view('admin/edit_category',$data);
-            $this->load->view('admin/footer');
+            $this->load->view('footer');
         }
     }
     
     function delete_category($cat_id){
         $where = array('cat_id' => $cat_id);
         $this->m_rental->delete_data($where, 'car_category');
-        redirect(base_url().'index.php/admin/category');
+        redirect(base_url().'home/category');
     } 
 
 }    

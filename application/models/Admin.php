@@ -1,9 +1,6 @@
 <?php
 class Admin extends CI_Model{
-    public function __construct()
-    {
-        parent::__construct();
-    }
+ 
     public function validate(){
    
         $username = $this->input->post('username');

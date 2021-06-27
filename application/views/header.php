@@ -35,7 +35,7 @@
 
     <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
-      <a class="sidebar-brand d-flex align-items-center justify-content-center" href="<?php echo base_url().'index.php/admin'?>">
+      <a class="sidebar-brand d-flex align-items-center justify-content-center" href="<?php echo base_url().'admin'?>">
         <div class="sidebar-brand-icon rotate-n-15">
           <i class="fas fa-car"></i>
         </div>
@@ -45,7 +45,7 @@
       <hr class="sidebar-divider my-0">
 
       <li class="nav-item active">
-        <a class="nav-link" href="<?php echo base_url().'index.php/admin'?>">
+        <a class="nav-link" href="<?php echo base_url().'home'?>">
           <i class="fas fa-fw fa-tachometer-alt"></i>
           <span>Dashboard</span></a>
       </li>
@@ -58,33 +58,39 @@
       </div>
 
       <li class="nav-item">
-        <a class="nav-link" href="<?php echo base_url().'index.php/admin/car'?>"> <!-- it calls the functions that brings me the info from car table -->
+        <a class="nav-link" href="<?php echo base_url().'home/car'?>"> <!-- it calls the functions that brings me the info from car table -->
           <i class="fas fa-fw fa-car"></i>
           <span>Gestion de Vehiculos</span>
         </a>
       </li>
 
       <li class="nav-item">
-        <a class="nav-link" href="<?php echo base_url().'index.php/admin/category'?>">
+        <a class="nav-link" href="<?php echo base_url().'home/category'?>">
           <i class="fas fa-fw fa-truck"></i>
           <span>Gestion de Categorias de Vehiculos</span>
         </a>
       </li>
 
       <li class="nav-item">
-        <a class="nav-link" href="<?php echo base_url().'index.php/admin/customer'?>">
+        <a class="nav-link" href="<?php echo base_url().'home/customer'?>">
           <i class="fas fa-fw fa-user"></i>
           <span>Gestion de Cliente</span>
         </a>
       </li>
 
       <li class="nav-item">
-        <a class="nav-link" href="<?php echo base_url().'index.php/admin/employee' ?>">
+        <a class="nav-link" href="<?php echo base_url().'home/employee' ?>">
           <i class="fas fa-fw fa-user"></i>
           <span>Gestion de Empleado</span>
         </a>
       </li>
-
+      <li class="nav-item">
+      <div class="dropdown-divider"></div>
+        <a class="dropdown-item" href="<?php echo base_url().'logout'?>" data-toggle="modal" data-target="#logoutModal">
+          <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+          Logout
+        </a>
+      </li>
     </ul>
 
     <div id="content-wrapper" class="d-flex flex-column">

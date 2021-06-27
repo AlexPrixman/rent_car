@@ -38,7 +38,7 @@
                     <h6>Si no tienes una cuenta, creala aqui.</h6>
                 </div>
                 <div>
-                    <input class="btn btn-primary" type="button" value="Registrate">
+                    <a class="btn btn-warning" href="<?php echo base_url().'admin/register'?>"></a>
                 </div>
             </div>
         </div>

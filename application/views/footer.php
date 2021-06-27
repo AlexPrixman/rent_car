@@ -26,7 +26,7 @@
         <div class="modal-body">Haga clic en "Cerrar Sesion" si desea cerrar la sesion.</div>
         <div class="modal-footer">
           <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
-          <a class="btn btn-primary" href="<?php echo base_url().'admin/logout'; ?>">Cerrar Sesion</a>
+          <a class="btn btn-primary" href="<?php echo base_url().'admin/login/logout'; ?>">Cerrar Sesion</a>
         </div>
       </div>
     </div>

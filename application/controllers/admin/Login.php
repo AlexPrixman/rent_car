@@ -9,7 +9,7 @@ class Login extends CI_Controller{
     }
 
     function index(){
-        $this->load->view('admin');
+        $this->load->view('admin/login');
     }
 
     function verify(){
@@ -25,6 +25,11 @@ class Login extends CI_Controller{
             redirect('admin');
  
         }
+    }
+
+    public function logout() {
+        $this->session->sess_destroy('admin');
+        redirect('admin');
     }
 
 }
