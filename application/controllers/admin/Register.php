@@ -26,8 +26,8 @@ class Register extends CI_Controller{
                 'username'      => $username,
                 'password'      => $password
             );
-            $this->m_rental->insert_data($data, 'car');
-            redirect(base_url().'home/administrator');
+            $this->m_rental->insert_data($data, 'admin');
+            redirect(base_url().'admin');
         } else { 
             $this->load->view('header');
             $this->load->view('admin/register');
