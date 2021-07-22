@@ -6,7 +6,7 @@
 <div class="card shadow mb-4">
     <div class="card-body">
         <?php foreach($customer as $k){ ?>
-        <form action="<?php echo base_url().'home/update_customer' ?>" method="post">
+        <form action="<?php echo base_url().'home/update_customer/'.$k->customer_id ?>" method="post">
             <input type="hidden" name="customer_id" value="<?php echo $k->customer_id; ?>">
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label">Nombre</label>
@@ -39,15 +39,18 @@
             </div>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label">Estado del Cliente</label>
-                <div class="col-sm-10">
-                <input type="text" class="form-control" name="customer_status" rows="3" value="<?php echo $k->customer_status; ?>">
+                <div class="col-sm-2">
+                    <select class="form-control" name="customer_status">
+                        <option value="A">Activo</option>
+                        <option value="I">Inactivo</option>
+                    </select>
                 </div>
             </div>
             </div>
             <div class="form-group row">
                 <div class="col-sm-10 offset-sm-2">
                     <button type="submit" class="btn btn-primary">Editar</button>
-                    <button type="submit" class="btn btn-danger">Cancelar</button>
+                    <a href="<?php echo base_url().'home/customer';?>" class="btn btn-danger">Cancelar</a>
                 </div>
             </div>
         </form>

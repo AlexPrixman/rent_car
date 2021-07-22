@@ -18,24 +18,28 @@ class Home extends CI_Controller{
         $this->load->view('admin/car',$data);
         $this->load->view('footer');
     }
-    function add_car(){
-        $this->load->view('header');
-        $this->load->view('admin/add_car');
-        $this->load->view('footer');
-    }
+
     //Over here we admin the cars
     function add_car_act(){
+        $data = array(
+            'car' => $this->m_rental->get_data('car')->result(),
+            'categories' => $this->m_rental->get_data('car_category')->result(),
+            'brand' => $this->m_rental->get_data('car_brand')->result(),
+            'model' => $this->m_rental->get_data('car_model')->result()
+        );
+  
         $car_id         = $this->input->post('car_id');
         $car_desc       = $this->input->post('car_desc');
         $car_chasis     = $this->input->post('car_chasis');
         $car_engine     = $this->input->post('car_engine');
-        $car_plate      = $this->input->post('car_plate');
-        $brand_desc     = $this->input->post('brand_desc');
         $cat_desc       = $this->input->post('cat_desc');
+        $brand_desc     = $this->input->post('brand_desc');
+        $model_desc     = $this->input->post('model_desc');
+        $car_plate      = $this->input->post('car_plate');
         $fuel_desc      = $this->input->post('fuel_desc');
         $car_status     = $this->input->post('car_status');
-        $model_desc     = $this->input->post('model_desc');
-        $this->form_validation->set_rules('car_id','Car brand','required');
+        
+        $this->form_validation->set_rules('car_desc','Car brand','required');
         $this->form_validation->set_rules('car_status','Car status','required');
         
         if($this->form_validation->run() != false){
@@ -44,18 +48,18 @@ class Home extends CI_Controller{
                 'car_desc'      => $car_desc,
                 'car_chasis'    => $car_chasis,
                 'car_engine'    => $car_engine,
-                'car_plate'     => $car_plate,
                 'cat_desc'      => $cat_desc,
                 'brand_desc'    => $brand_desc,
+                'model_desc'    => $model_desc,
+                'car_plate'     => $car_plate,
                 'fuel_desc'     => $fuel_desc,
-                'car_status'    => $car_status,
-                'model_desc'    => $model_desc
+                'car_status'    => $car_status                
             );
             $this->m_rental->insert_data($data, 'car');
             redirect(base_url().'home/car');
         } else { 
             $this->load->view('header');
-            $this->load->view('admin/add_car');
+            $this->load->view('admin/add_car', $data);
             $this->load->view('footer');
         } 
     }
@@ -73,13 +77,14 @@ class Home extends CI_Controller{
         $car_desc       = $this->input->post('car_desc');
         $car_chasis     = $this->input->post('car_chasis');
         $car_engine     = $this->input->post('car_engine');
-        $car_plate      = $this->input->post('car_plate');
+        $cat_desc       = $this->input->post('cat_desc');
         $brand_desc     = $this->input->post('brand_desc');
         $model_desc     = $this->input->post('model_desc');
-        $cat_desc       = $this->input->post('cat_desc');
+        $car_plate      = $this->input->post('car_plate');
         $fuel_desc      = $this->input->post('fuel_desc');
         $car_status     = $this->input->post('car_status');
-        $this->form_validation->set_rules('car_id','Car brand','required');
+
+        $this->form_validation->set_rules('car_desc','Car brand','required');
         $this->form_validation->set_rules('car_status','Car status','required');
         
         if($this->form_validation->run() != false){
@@ -89,12 +94,12 @@ class Home extends CI_Controller{
                 'car_desc'      => $car_desc,
                 'car_chasis'    => $car_chasis,
                 'car_engine'    => $car_engine,
-                'car_plate'     => $car_plate,
+                'cat_desc'      => $cat_desc,
                 'brand_desc'    => $brand_desc,
                 'model_desc'    => $model_desc,
-                'cat_desc'      => $cat_desc,
+                'car_plate'     => $car_plate,
                 'fuel_desc'     => $fuel_desc,
-                'car_status'    => $car_status
+                'car_status'    => $car_status    
             );
             
             $this->m_rental->update_data($where, $data, 'car');
@@ -120,12 +125,8 @@ class Home extends CI_Controller{
         $this->load->view('admin/customer',$data);
         $this->load->view('footer');
     }
-    function add_customer(){
-        $this->load->view('header');
-        $this->load->view('admin/add_customer');
-        $this->load->view('footer');
-    }
     function add_customer_act(){
+        $data['customer'] = $this->m_rental->get_data('customer')->result();
         $customer_id                = $this->input->post('customer_id');
         $customer_name              = $this->input->post('customer_name');
         $customer_cedula            = $this->input->post('customer_cedula');
@@ -151,7 +152,7 @@ class Home extends CI_Controller{
             redirect(base_url().'home/customer');
         } else {
             $this->load->view('header');
-            $this->load->view('admin/add_customer');
+            $this->load->view('admin/add_customer', $data);
             $this->load->view('footer');
         }
     }
@@ -362,7 +363,145 @@ class Home extends CI_Controller{
         $where = array('cat_id' => $cat_id);
         $this->m_rental->delete_data($where, 'car_category');
         redirect(base_url().'home/category');
-    } 
+    }
+    
+    function brand(){
+        $data['brand'] = $this->m_rental->get_data('car_brand')->result(); //This is the read_function on the controller.
+        $this->load->view('header');
+        $this->load->view('admin/brand',$data);
+        $this->load->view('footer');
+    }
+
+    //Over here we admin the cars
+    function add_brand_act(){
+        $data['brand'] = $this->m_rental->get_data('car_brand')->result();
+        
+        $brand_id         = $this->input->post('brand_id');
+        $brand_desc       = $this->input->post('brand_desc');
+        $brand_status     = $this->input->post('brand_status');
+
+        $this->form_validation->set_rules('brand_desc','Brand','required');
+        $this->form_validation->set_rules('brand_status','Status','required');
+        
+        if($this->form_validation->run() != false){
+            $data = array(
+                'brand_id'          => $brand_id ,
+                'brand_desc'        => $brand_desc ,
+                'brand_status '     => $brand_status
+            );
+
+            $this->m_rental->insert_data($data, 'car_brand');
+            redirect(base_url().'home/add_car_act');
+        } else { 
+            $this->load->view('header');
+            $this->load->view('admin/add_brand',$data);
+            $this->load->view('footer');
+        } 
+    }
+    function edit_brand($brand_id){
+        $where = array('brand_id' => $brand_id);
+        $data['car_brand'] = $this->m_rental->edit_data($where,'car_brand')->result();
+        $this->load->view('header');
+        $this->load->view('admin/edit_brand',$data);
+        $this->load->view('footer');
+    }
+
+    function update_brand(){
+        $brand_id            = $this->input->post('brand_id');
+        $brand_desc          = $this->input->post('brand_desc');
+        $brand_status        = $this->input->post('brand_status');
+        
+        if($this->form_validation->run() != false){
+            $where = array('brand_id' => $brand_id);
+            $data = array(
+                'brand_id'           => $brand_id,
+                'brand_desc'         => $brand_desc,
+                'brand_status'       => $brand_status
+            );
+            
+            $this->m_rental->update_data($where, $data, 'car_brand');
+            redirect(base_url().'home/brand');
+        } else {
+            $where = array('brand_id' => $brand_id);
+            $data['car_brand'] = $this->m_rental->edit_data($where,'car_brand')->result();
+            $this->load->view('header');
+            $this->load->view('admin/edit_category',$data);
+            $this->load->view('footer');
+        }
+    }
+    function delete_brand($brand_id){
+        $where = array('brand_id' => $brand_id);
+        $this->m_rental->delete_data($where, 'car_brand');
+        redirect(base_url().'home/brand');
+    }
+    /**Car model Administration section */
+    function model(){
+        $data['model'] = $this->m_rental->get_data('car_model')->result();
+        $this->load->view('header');
+        $this->load->view('admin/model', $data);
+        $this->load->view('footer');
+    }
+    function add_model_act(){
+        $data['model'] = $this->m_rental->get_data('car_model')->result();
+
+        $model_id         = $this->input->post('model_id');
+        $model_desc       = $this->input->post('model_desc');
+        $model_status     = $this->input->post('model_status');
+
+        $this->form_validation->set_rules('model_desc','Model','required');
+        $this->form_validation->set_rules('model_status','Status','required');
+        
+        if($this->form_validation->run() != false){
+            $data = array(
+                'model_id'          => $model_id ,
+                'model_desc'        => $model_desc ,
+                'model_status '     => $model_status
+            );
+            $this->m_rental->insert_data($data, 'car_model');
+            redirect(base_url('home/model'));
+        } else { 
+            $this->load->view('header');
+            $this->load->view('admin/add_model', $data);
+            $this->load->view('footer');
+        } 
+    }
+    function edit_model($model_id){
+        $where = array('model_id' => $model_id);
+        $data['model'] = $this->m_rental->edit_data($where,'car_model')->result();
+        $this->load->view('header');
+        $this->load->view('admin/edit_model',$data);
+        $this->load->view('footer');
+    }
+
+    function update_model(){
+        $model_id            = $this->input->post('model_id');
+        $model_desc          = $this->input->post('model_desc');
+        $model_status        = $this->input->post('model_status');
+        
+        if($this->form_validation->run() != false){
+            $where = array('model_id' => $model_id);
+            $data = array(
+                'model_id'           => $model_id,
+                'model_desc'         => $model_desc,
+                'model_status'       => $model_status
+            );
+            
+            $this->m_rental->update_data($where, $data, 'car_model');
+            redirect(base_url().'home/model');
+        } else {
+            $where = array('model_id' => $model_id);
+            $data['model'] = $this->m_rental->edit_data($where,'car_model')->result();
+            $this->load->view('header');
+            $this->load->view('admin/edit_model',$data);
+            $this->load->view('footer');
+        }
+    }
+    
+    function delete_model($model_id){
+        $where = array('model_id' => $model_id);
+        $this->m_rental->delete_data($where, 'car_model');
+        redirect(base_url().'home/model');
+    }
 
 }    
 

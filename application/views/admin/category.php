@@ -45,6 +45,8 @@
                 </tbody>
             </table>
         </div>
+        <a href="<?php echo base_url().'home/add_car_act';?>" class="btn btn-danger">Cancelar</a>
+
     </div>
 </div>
 <script type="text/javascript">
