@@ -6,7 +6,7 @@
 <div class="card shadow mb-4">
     <div class="card-body">
         <?php foreach($car_model as $m){ ?>
-        <form action="<?php echo base_url().'home/update_category/'.$m->model_id?>" method="post">
+        <form action="<?php echo base_url().'home/update_model/'.$m->model_id?>" method="post">
             <input type="hidden" name="model_id" value="<?php echo $m->model_id; ?>">
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label">Descripcion</label>

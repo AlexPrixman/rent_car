@@ -187,7 +187,7 @@ class Home extends CI_Controller{
             );
             
             $this->m_rental->update_data($where, $data, 'customer');
-            redirect(base_url().'home/employee');
+            redirect(base_url().'home/customer');
         } else {
             $where = array('customer_id' => $customer_id);
             $data['customer'] = $this->m_rental->edit_data($where,'customer')->result();

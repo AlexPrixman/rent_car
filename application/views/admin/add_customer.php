@@ -50,6 +50,7 @@
             <div class="form-group row">
                 <div class="col-sm-10 offset-sm-2">
                     <button type="submit" class="btn btn-primary">Registrar</button>
+                    <a href="<?php echo base_url().'home/customer';?>" class="btn btn-danger">Cancelar</a>
                 </div>
             </div>
         </form>

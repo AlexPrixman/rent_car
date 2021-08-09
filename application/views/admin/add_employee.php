@@ -39,7 +39,7 @@
             </div>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label">Fecha de Ingreso</label>
-                <div class="col-sm-2"><input type="date" class="form-control" name="employee_hiring_date"></div>
+                <div class="col-sm-2"><input type="date" max="2021-08-04" class="form-control" name="employee_hiring_date"></div>
                 <?php echo form_error('employee_id'); ?>
             </div>
             <div class="form-group row">
@@ -55,6 +55,7 @@
             <div class="form-group row">
                 <div class="col-sm-10 offset-sm-2">
                     <button type="submit" class="btn btn-primary">Registrar</button>
+                    <a href="<?php echo base_url().'home/employee';?>" class="btn btn-danger">Cancelar</a>
                 </div>
             </div>
         </form>

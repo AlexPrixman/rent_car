@@ -5,11 +5,7 @@
 
 <div class="card shadow mb-4">
     <div class="card-body">
-        <form action="<?php echo base_url().'home/add_car_act' ?>" method="post">
-            <?php if(isset($car))?>
-                <?php foreach($car as $m){?>
-                    <input type="hidden" name="car_id" value="<?php echo $m->car_id; ?>">
-                <?php  }  ?>            
+        <form action="<?php echo base_url().'home/add_car_act' ?>" method="post">     
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label">Descripcion del Vehiculo</label>
                 <div class="col-sm-10"><input type="text" class="form-control" name="car_desc"></div>

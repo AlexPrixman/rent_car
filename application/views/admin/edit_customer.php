@@ -26,15 +26,18 @@
                 </div>
             </div>
             <div class="form-group row">
-                <label class="col-sm-2 col-form-label">Cedula</label>
+                <label class="col-sm-2 col-form-label">Limite de Credito</label>
                 <div class="col-sm-10">
                 <input type="text" class="form-control" name="customer_credit_limit" rows="3" value="<?php echo $k->customer_credit_limit; ?>">
                 </div>
             </div>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label">Tipo de Cliente</label>
-                <div class="col-sm-10">
-                <input type="text" class="form-control" name="customer_type" rows="3" value="<?php echo $k->customer_type; ?>">
+                <div class="col-sm-2">
+                    <select class="form-control" name="customer_status">
+                        <option value="F">Fiscal</option>
+                        <option value="J">Juridica</option>
+                    </select>
                 </div>
             </div>
             <div class="form-group row">

@@ -13,7 +13,6 @@ class Login extends CI_Controller{
     }
 
     function verify(){
-        $this->load->model('admin');
         $check = $this->admin->validate();
         
         if(count($check) > 0){
@@ -28,7 +27,7 @@ class Login extends CI_Controller{
     }
 
     public function logout() {
-        $this->session->sess_destroy('admin');
+        $this->session->session_destroy('admin');
         redirect('admin');
     }
 
