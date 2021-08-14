@@ -503,6 +503,57 @@ class Home extends CI_Controller{
         redirect(base_url().'home/model');
     }
 
+    function rentals(){
+        $data['rental'] = $this->m_rental->get_data('rental')->result();
+
+        $this->load->view('header');
+        $this->load->view('admin/rentals',$data);
+        $this->load->view('footer');
+    }
+
+    function add_rental(){
+        $data = array(
+            'car' => $this->m_rental->get_data('car')->result(),
+            'employee' => $this->m_rental->get_data('employee')->result(),
+            'customer' => $this->m_rental->get_data('customer')->result(),
+            'rental' => $this->m_rental->get_data('rental')->result()
+        );
+        $rental_id          = $this->input->post('rental_id');
+        $employee_name      = $this->input->post('employee_name');
+        $car_desc           = $this->input->post('car_desc');
+        $customer_name      = $this->input->post('customer_name');
+        $rental_date        = $this->input->post('rental_date');
+        $return_date        = $this->input->post('return_date');
+        $fee_per_day        = $this->input->post('fee_per_day');
+        $rental_time        = $this->input->post('rental_time');
+        $comment            = $this->input->post('comment');
+        $rental_status      = $this->input->post('rental_status');
+        
+        $this->form_validation->set_rules('rental_date','Rental Date','required');
+        $this->form_validation->set_rules('rental_status','Rental status','required');
+        
+        if($this->form_validation->run() != false){
+            $data = array(
+                'rental_id '        => $rental_id,
+                'employee_name'     => $employee_name,
+                'car_desc'          => $car_desc,
+                'customer_name'     => $customer_name,
+                'rental_date'       => $rental_date,
+                'return_date'       => $return_date,
+                'fee_per_day'       => $fee_per_day,
+                'rental_time'       => $rental_time,
+                'comment'           => $comment,
+                'rental_status'     => $rental_status           
+            );
+            $this->m_rental->insert_data($data, 'car');
+            redirect(base_url().'home/rentals');
+        } else { 
+            $this->load->view('header');
+            $this->load->view('admin/add_rental', $data);
+            $this->load->view('footer');
+        } 
+    }
+
 }    
 
 ?>    

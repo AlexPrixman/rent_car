@@ -85,6 +85,18 @@
         </a>
       </li>
       <li class="nav-item">
+        <a class="nav-link" href="<?php echo base_url().'home/rentals' ?>">
+          <i class="fas fa-fw fa-user"></i>
+          <span>Renta de Vehiculos</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="<?php echo base_url().'home/inspection' ?>">
+          <i class="fas fa-fw fa-user"></i>
+          <span>Inspeccion de Vehiculos</span>
+        </a>
+      </li>
+      <li class="nav-item">
       <div class="dropdown-divider"></div>
         <a class="dropdown-item" href="<?php echo base_url().'logout'?>" data-toggle="modal" data-target="#logoutModal">
           <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
