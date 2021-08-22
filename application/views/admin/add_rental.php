@@ -93,7 +93,7 @@ var date            = document.getElementsByClassName("date");
 var amountOfDays    = document.getElementById("amountOfDays");
 var days            = 1000 * 60 * 60 * 24;
 
-date2.max = new Date().toISOString().split("T")[0];
+date2.min = new Date().toISOString().split("T")[0];
 
 selectValue.addEventListener('change', function(){
     hiddenInput.value = this.options[this.selectedIndex].value;
