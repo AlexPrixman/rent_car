@@ -72,6 +72,20 @@
       </li>
 
       <li class="nav-item">
+        <a class="nav-link" href="<?php echo base_url().'home/brand'?>">
+          <i class="fas fa-fw fa-building"></i>
+          <span>Gestion de Marcas de Vehiculos</span>
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link" href="<?php echo base_url().'home/model'?>">
+          <i class="fas fa-fw fa-industry"></i>
+          <span>Gestion de Modelos de Vehiculos</span>
+        </a>
+      </li>
+
+      <li class="nav-item">
         <a class="nav-link" href="<?php echo base_url().'home/customer'?>">
           <i class="fas fa-fw fa-user"></i>
           <span>Gestion de Cliente</span>
