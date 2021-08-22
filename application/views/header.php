@@ -86,13 +86,13 @@
       </li>
       <li class="nav-item">
         <a class="nav-link" href="<?php echo base_url().'home/rentals' ?>">
-          <i class="fas fa-fw fa-user"></i>
-          <span>Renta de Vehiculos</span>
+          <i class="fas fa-fw fa-car"></i>
+          <span>Renta de Vehiculos y Devoluciones</span>
         </a>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="<?php echo base_url().'home/inspection' ?>">
-          <i class="fas fa-fw fa-user"></i>
+          <i class="fas fa-fw fa-car"></i>
           <span>Inspeccion de Vehiculos</span>
         </a>
       </li>

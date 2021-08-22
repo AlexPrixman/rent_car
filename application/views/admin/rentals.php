@@ -12,11 +12,11 @@
                 <thead>
                     <tr>
                         <th># Renta</th>
+                        <th>Empleado</th>
                         <th>Fecha de la Renta</th>
                         <th># Vehiculo</th>
                         <th># Cliente</th>
                         <th>Duracion de la Renta</th>
-                        <th>Estado del vehiculo</th>
                         <th>Fecha de Entrega</th>
                         <th>Cargo por Dia</th>
                         <th>Comentario</th>
@@ -30,27 +30,28 @@
                 ?>
                     <tr>
                         <td><?php echo $m->rental_id ?></td>
+                        <td><?php echo $m->employee_desc ?></td>
                         <td><?php echo $m->rental_date ?></td>
-                        <td><?php echo $m->car_id ?></td>
-                        <td><?php echo $m->customer_id ?></td>
+                        <td><?php echo $m->car_desc ?></td>
+                        <td><?php echo $m->customer_desc ?></td>
                         <td><?php echo $m->rental_time ?></td>
                         <td><?php echo $m->return_date ?></td>
                         <td><?php echo $m->fee_per_day ?></td>
                         <td><?php echo $m->comment ?></td>
                         <td>
                         <?php
-                        if($m->rental_status == 'D'){
-                            echo 'Disponible';
+                        if($m->rental_status == 'E'){
+                            echo 'En Proceso';
                         } else {
-                            echo 'Rentado';
+                            echo 'Terminada';
                         }
                         ?>
                         </td>
                         <td>
-                            <a class="btn btn-info btn-edit" name="car_id" href="<?php echo base_url().'home/edit_car/'.$m->rental_id; ?>">
+                            <a class="btn btn-info btn-edit" name="car_id" href="<?php echo base_url().'home/edit_rental/'.$m->rental_id; ?>">
                                 <i class="fas fa-edit"></i> Editar
                             </a>
-                            <a class="btn btn-danger btn-sm btn-delete" name="car_id" href="<?php echo base_url().'home/delete_car/'.$m->rental_id; ?>">
+                            <a class="btn btn-danger btn-sm btn-delete" name="car_id" href="<?php echo base_url().'home/delete_rental/'.$m->rental_id; ?>">
                                 <i class="fas fa-trash"></i> Eliminar
                             </a>
                         </td>

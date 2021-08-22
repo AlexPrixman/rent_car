@@ -20,12 +20,14 @@
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label">Vehiculos</label>
                 <div class="col-sm-10">
-                    <select class="form-control" name="car_desc">
+                    <select class="form-control" id="selectValue">
                     <?php if(isset($car))?>
                         <?php foreach($car as $k){?>
-                            <option value="<?php echo $k->car_desc;?>"><?php echo $k->car_desc;?></option>
+                            <option value="<?php echo $k->car_id;?>"><?php echo $k->car_desc;?></option>
                         <?php  }  ?>  
                     </select>
+                    <input type="hidden" name="car_id" id="hiddenInput" value="">
+                    <input type="hidden" name="car_desc" id="hiddenInput2" value="">
                 </div> 
             </div>
             <div class="form-group row">
@@ -41,12 +43,12 @@
             </div>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label">Fecha de Renta</label>
-                <div class="col-sm-2"><input type="date" min="2021-08-14" class="form-control" name="rental_date"></div>
+                <div class="col-sm-2"><input type="date" min="2021-08-21" class="form-control date" name="rental_date" id="date1"></div>
                 <?php echo form_error('rental_date'); ?>
             </div>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label">Fecha de Retorno</label>
-                <div class="col-sm-2"><input type="date" min="2021-08-15" class="form-control" name="return_date"></div>
+                <div class="col-sm-2"><input type="date" min="2021-08-22" class="form-control date" name="return_date" id="date2"></div>
                 <?php echo form_error('return_date'); ?>
             </div>
             <div class="form-group row">
@@ -55,7 +57,7 @@
             </div>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label">Cantidad de Dias</label>
-                <div class="col-sm-2"><input type="number" min="1" class="form-control" name="rental_time"></div>
+                <div class="col-sm-2"><input type="number"  readonly class="form-control" name="rental_time" id="amountOfDays"></div>
             </div>
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label">Comentario</label>
@@ -66,9 +68,9 @@
             <div class="form-group row">
                 <label class="col-sm-2 col-form-label">Estado de la Renta</label>
                 <div class="col-sm-2">
-                <select class="form-control" name="car_status">
-                    <option value="D">Disponible</option>
-                    <option value="R">Rentado</option>
+                <select class="form-control" name="rental_status">
+                    <option value="E">En Proceso</option>
+                    <option value="T">Terminada</option>
                 </select>
                 </div>
             </div>
@@ -81,3 +83,44 @@
         </form>
     </div>
 </div>
+<script type="text/javascript">
+var selectValue     = document.getElementById("selectValue");
+var hiddenInput     = document.getElementById("hiddenInput");  
+
+var date1           = document.getElementById("date1");
+var date2           = document.getElementById("date2");
+var date            = document.getElementsByClassName("date");
+var amountOfDays    = document.getElementById("amountOfDays");
+var days            = 1000 * 60 * 60 * 24;
+
+date2.max = new Date().toISOString().split("T")[0];
+
+selectValue.addEventListener('change', function(){
+    hiddenInput.value = this.options[this.selectedIndex].value;
+    hiddenInput2.value = this.options[this.selectedIndex].text
+});
+
+document.querySelectorAll('.date').forEach(item => {
+  item.addEventListener('change', event => {
+  
+  	//Condicion para verificar si ambas fechas no son nulas
+    if (date1.value && date2.value) {
+
+			//Convirtiendo fechas en milisegundos
+      var dateInitial = new Date(date1.value);
+      var dateDelivery = new Date(date2.value);
+
+			//Obteniendo diferencia entren ambas fechas en milisegundos
+      var diferenciaDias = dateDelivery.getTime() - dateInitial.getTime();
+			
+      //Convirtiendo diferencia dias de milisegundos a dias
+      var cantidadDias = diferenciaDias / days;
+
+			//Colocando valor en input
+      amountOfDays.value = cantidadDias;
+
+    }
+  
+  })
+});
+</script>

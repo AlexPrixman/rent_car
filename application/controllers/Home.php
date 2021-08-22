@@ -515,13 +515,13 @@ class Home extends CI_Controller{
         $data = array(
             'car' => $this->m_rental->get_data('car')->result(),
             'employee' => $this->m_rental->get_data('employee')->result(),
-            'customer' => $this->m_rental->get_data('customer')->result(),
-            'rental' => $this->m_rental->get_data('rental')->result()
+            'customer' => $this->m_rental->get_data('customer')->result()
         );
+        $car_id             = $this->input->post('car_id');
         $rental_id          = $this->input->post('rental_id');
-        $employee_name      = $this->input->post('employee_name');
+        $employee_desc      = $this->input->post('employee_name');
         $car_desc           = $this->input->post('car_desc');
-        $customer_name      = $this->input->post('customer_name');
+        $customer_desc      = $this->input->post('customer_name');
         $rental_date        = $this->input->post('rental_date');
         $return_date        = $this->input->post('return_date');
         $fee_per_day        = $this->input->post('fee_per_day');
@@ -530,14 +530,14 @@ class Home extends CI_Controller{
         $rental_status      = $this->input->post('rental_status');
         
         $this->form_validation->set_rules('rental_date','Rental Date','required');
-        $this->form_validation->set_rules('rental_status','Rental status','required');
+        $this->form_validation->set_rules('rental_status','Rental Status','required');
         
         if($this->form_validation->run() != false){
             $data = array(
                 'rental_id '        => $rental_id,
-                'employee_name'     => $employee_name,
+                'employee_desc'     => $employee_desc,
                 'car_desc'          => $car_desc,
-                'customer_name'     => $customer_name,
+                'customer_desc'     => $customer_desc,
                 'rental_date'       => $rental_date,
                 'return_date'       => $return_date,
                 'fee_per_day'       => $fee_per_day,
@@ -545,13 +545,201 @@ class Home extends CI_Controller{
                 'comment'           => $comment,
                 'rental_status'     => $rental_status           
             );
-            $this->m_rental->insert_data($data, 'car');
+
+            $this->m_rental->insert_data($data, 'rental');
+            $where = array('car_id' => $car_id);
+            $data2 = array(
+                'car_id'        =>$car_id,
+                'car_status'    => 'R'
+
+            );
+            $this->m_rental->update_data($where, $data2,'car');
             redirect(base_url().'home/rentals');
         } else { 
             $this->load->view('header');
             $this->load->view('admin/add_rental', $data);
             $this->load->view('footer');
         } 
+    }
+    function edit_rental($rental_id){
+        $where = array('rental_id' => $rental_id);
+        $data['rental'] = $this->m_rental->edit_data($where,'rental')->result();
+        $this->load->view('header');
+        $this->load->view('admin/edit_rental',$data);
+        $this->load->view('footer');
+    }
+
+    function update_rental(){
+        $rental_id          = $this->input->post('rental_id');
+        $employee_desc      = $this->input->post('employee_desc');
+        $car_desc           = $this->input->post('car_desc');
+        $customer_desc      = $this->input->post('customer_desc');
+        $rental_date        = $this->input->post('rental_date');
+        $return_date        = $this->input->post('return_date');
+        $fee_per_day        = $this->input->post('fee_per_day');
+        $rental_time        = $this->input->post('rental_time');
+        $comment            = $this->input->post('comment');
+        $rental_status      = $this->input->post('rental_status');
+
+        $this->form_validation->set_rules('rental_date','Rental Date','required');
+        $this->form_validation->set_rules('rental_status','Rental Status','required');
+        
+        if($this->form_validation->run() != false){
+            $where = array('rental_id' => $rental_id);
+            $data = array(
+                'rental_id '        => $rental_id,
+                'employee_desc'     => $employee_desc,
+                'car_desc'          => $car_desc,
+                'customer_desc'     => $customer_desc,
+                'rental_date'       => $rental_date,
+                'return_date'       => $return_date,
+                'fee_per_day'       => $fee_per_day,
+                'rental_time'       => $rental_time,
+                'comment'           => $comment,
+                'rental_status'     => $rental_status     
+            );
+            
+            $this->m_rental->update_data($where, $data, 'rental');
+            redirect(base_url().'home/rentals');
+        } else {
+            $where = array('rental_id' => $rental_id);
+            $data['rental'] = $this->m_rental->edit_data($where,'rental')->result();
+            $this->load->view('header');
+            $this->load->view('admin/edit_rental',$data);
+            $this->load->view('footer');
+        }
+    }
+    function delete_rental($rental_id){
+        $where = array('rental_id' => $rental_id);
+        $this->m_rental->delete_data($where, 'rental');
+        redirect(base_url().'home/rentals');
+    }
+
+
+    function inspection(){
+        $data['inspection'] = $this->m_rental->get_data('inspection')->result();
+
+        $this->load->view('header');
+        $this->load->view('admin/inspection',$data);
+        $this->load->view('footer');
+    }
+
+    function add_inspection(){
+        $data = array(
+            'car' => $this->m_rental->get_data('car')->result(),
+            'employee' => $this->m_rental->get_data('employee')->result(),
+            'customer' => $this->m_rental->get_data('customer')->result()
+        );
+
+        $inspection_id      = $this->input->post('inspection_id');
+        $car_desc           = $this->input->post('car_desc');
+        $customer_desc      = $this->input->post('customer_desc');
+        $is_damaged         = $this->input->post('is_damaged');
+        $fuel_level         = $this->input->post('fuel_level');
+        $spare_tire         = $this->input->post('spare_tire');
+        $hydraulic_jack     = $this->input->post('hydraulic_jack');
+        $left_front_tire    = $this->input->post('left_front_tire');
+        $right_front_tire   = $this->input->post('right_front_tire');
+        $left_rear_tire     = $this->input->post('left_rear_tire');
+        $right_rear_tire    = $this->input->post('right_rear_tire');
+        $Etc                = $this->input->post('Etc');
+        $inspection_date    = $this->input->post('inspection_date');
+        $employee_desc      = $this->input->post('employee_desc');
+        $inspection_status  = $this->input->post('inspection_status');
+
+        $this->form_validation->set_rules('customer_desc','Customer','required');
+        $this->form_validation->set_rules('inspection_status','Inspection Status','required');
+        
+        if($this->form_validation->run() != false){
+            $data = array(
+                'inspection_id'     => $inspection_id,
+                'car_desc'          => $car_desc,
+                'customer_desc'     => $customer_desc,
+                'is_damaged'        => $is_damaged,
+                'fuel_level'        => $fuel_level,         
+                'spare_tire'        => $spare_tire,
+                'hydraulic_jack'    => $hydraulic_jack,
+                'left_front_tire'   => $left_front_tire,
+                'right_front_tire'  => $right_front_tire,
+                'left_rear_tire'    => $left_rear_tire,
+                'right_rear_tire'   => $right_rear_tire,
+                'Etc'               => $Etc,
+                'inspection_date'   => $inspection_date,
+                'employee_desc'     => $employee_desc,
+                'inspection_status' => $inspection_status 
+            );
+            $this->m_rental->insert_data($data, 'inspection');
+            redirect(base_url('home/inspection'));
+        } else { 
+            $this->load->view('header');
+            $this->load->view('admin/add_inspection', $data);
+            $this->load->view('footer');
+        } 
+    }
+
+    function edit_inspection($inspection_id){
+        $where = array('inspection_id' => $inspection_id);
+        $data['inspection'] = $this->m_rental->edit_data($where,'inspection')->result();
+        $this->load->view('header');
+        $this->load->view('admin/edit_inspection',$data);
+        $this->load->view('footer');
+    }
+
+    function delete_inspection($inspection_id){
+        $where = array('inspection_id' => $inspection_id);
+        $this->m_rental->delete_data($where, 'inspection');
+        redirect(base_url().'home/inspection');
+    }
+
+    function update_inspection(){
+        $inspection_id      = $this->input->post('inspection_id');
+        $car_desc           = $this->input->post('car_desc');
+        $customer_desc      = $this->input->post('customer_desc');
+        $is_damaged         = $this->input->post('is_damaged');
+        $fuel_level         = $this->input->post('fuel_level');
+        $spare_tire         = $this->input->post('spare_tire');
+        $hydraulic_jack     = $this->input->post('hydraulic_jack');
+        $left_front_tire    = $this->input->post('left_front_tire');
+        $right_front_tire   = $this->input->post('right_front_tire');
+        $left_rear_tire     = $this->input->post('left_rear_tire');
+        $right_rear_tire    = $this->input->post('right_rear_tire');
+        $etc                = $this->input->post('etc');
+        $inspection_date    = $this->input->post('inspection_date');
+        $employee_desc      = $this->input->post('employee_desc');
+        $inspection_status  = $this->input->post('inspection_status');
+        
+        $this->form_validation->set_rules('customer_desc','Customer','required');
+        $this->form_validation->set_rules('inspection_status','Inspection Status','required');
+
+        if($this->form_validation->run() != false){
+            $where = array('inspection_id' => $inspection_id);
+            $data = array(
+                'inspection_id'     => $inspection_id,
+                'car_desc'          => $car_desc,
+                'customer_desc'     => $customer_desc,
+                'is_damaged'        => $is_damaged,
+                'fuel_level'        => $fuel_level,         
+                'spare_tire'        => $spare_tire,
+                'hydraulic_jack'    => $hydraulic_jack,
+                'left_front_tire'   => $left_front_tire,
+                'right_front_tire'  => $right_front_tire,
+                'left_rear_tire'    => $left_rear_tire,
+                'right_rear_tire'   => $right_rear_tire,
+                'etc'               => $etc,
+                'inspection_date'   => $inspection_date,
+                'employee_desc'     => $employee_desc,
+                'inspection_status' => $inspection_status 
+            );
+            
+            $this->m_rental->update_data($where, $data, 'inspection');
+            redirect(base_url().'home/inspection');
+        } else {
+            $where = array('inspection_id' => $inspection_id);
+            $data['inspection'] = $this->m_rental->edit_data($where,'inspection')->result();
+            $this->load->view('header');
+            $this->load->view('admin/edit_inspection',$data);
+            $this->load->view('footer');
+        }
     }
 
 }    
