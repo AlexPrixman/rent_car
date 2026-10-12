@@ -13,6 +13,20 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: rentdesk
+          POSTGRES_PASSWORD: isolated_ci_password
+          POSTGRES_DB: rentdesk_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rentdesk -d rentdesk_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
         with:
@@ -24,9 +38,15 @@ jobs:
       - run: npm ci
       - run: npm audit --audit-level=high
       - run: npm test
+      - name: PostgreSQL API and payment contracts
+        run: npm run test -w @rentdesk/api
+        env:
+          TEST_DATABASE_URL: postgres://rentdesk:isolated_ci_password@localhost:5432/rentdesk_ci
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+        env:
+          E2E_DATABASE_URL: postgres://rentdesk:isolated_ci_password@localhost:5432/rentdesk_ci
       - name: Build container
         run: docker build -t rentdesk:ci .
       - name: Container smoke test

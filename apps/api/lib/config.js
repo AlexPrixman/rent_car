@@ -3,8 +3,18 @@ dotenv.config({ path: new URL("../../../.env", import.meta.url), quiet: true });
 
 export function configuration(env = process.env) {
   const production = env.NODE_ENV === "production";
+  const portfolioDemo = env.PORTFOLIO_DEMO === "true";
+  if (
+    portfolioDemo &&
+    (env.PAYMENTS_MODE !== "demo" ||
+      env.STRIPE_SECRET_KEY ||
+      env.PAYPAL_CLIENT_SECRET)
+  )
+    throw new Error(
+      "Portfolio demo requires simulated payments and no merchant secrets",
+    );
   const mode = env.PAYMENTS_MODE || (production ? "sandbox" : "demo");
-  const publicUrl = (env.PUBLIC_APP_URL || "http://localhost:5173").replace(
+  const publicUrl = (env.PUBLIC_APP_URL || env.RENDER_EXTERNAL_URL || "http://localhost:5173").replace(
     /\/$/,
     "",
   );
@@ -27,7 +37,7 @@ export function configuration(env = process.env) {
     throw new Error("PUBLIC_APP_URL must be an HTTP(S) origin");
   if (
     production &&
-    (mode === "demo" ||
+    ((mode === "demo" && !portfolioDemo) ||
       url.protocol !== "https:" ||
       secret.length < 32 ||
       secret.startsWith("development-only"))
@@ -42,11 +52,13 @@ export function configuration(env = process.env) {
     throw new Error("Stripe secret key does not match PAYMENTS_MODE");
   return {
     production,
+    portfolioDemo,
     mode,
     publicUrl,
     secret,
     currency,
     port: Number(env.PORT || 4000),
+    databaseUrl: env.DATABASE_URL || "",
     databasePath: env.DATABASE_PATH || "data/rentdesk.sqlite",
     trustProxy: env.TRUST_PROXY === "true",
     stripeKey: env.STRIPE_SECRET_KEY || "",

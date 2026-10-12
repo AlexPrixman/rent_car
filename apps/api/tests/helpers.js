@@ -3,27 +3,39 @@ import { randomUUID } from "node:crypto";
 import { configuration } from "../lib/config.js";
 import { createApp } from "../app.js";
 import { seed } from "../lib/seed.js";
-
 export async function fixture(t, overrides = {}, options = {}) {
   const config = {
     ...configuration({
       DATABASE_PATH: ":memory:",
       PUBLIC_APP_URL: "http://localhost:5173",
+      DATABASE_URL: process.env.TEST_DATABASE_URL || "",
     }),
     ...overrides,
   };
-  const runtime = createApp(config, { loginLimit: 1000, ...options });
+  const runtime = await createApp(config, {
+    loginLimit: 1000,
+    ...(process.env.TEST_DATABASE_URL
+      ? { databaseSchema: "rentdesk_test_" + randomUUID().replaceAll("-", "_") }
+      : {}),
+    ...options,
+  });
   await seed(runtime.db, config);
-  t.after(() => runtime.close());
+  t.after(async () => await runtime.close());
   const manager = request.agent(runtime.app),
     employee = request.agent(runtime.app);
   await manager
     .post("/api/auth/login")
-    .send({ username: "manager", password: "RentDesk123!" })
+    .send({
+      username: "manager",
+      password: "RentDesk123!",
+    })
     .expect(200);
   await employee
     .post("/api/auth/login")
-    .send({ username: "employee", password: "RentDesk123!" })
+    .send({
+      username: "employee",
+      password: "RentDesk123!",
+    })
     .expect(200);
   return {
     ...runtime,
@@ -33,10 +45,14 @@ export async function fixture(t, overrides = {}, options = {}) {
     request: request(runtime.app),
   };
 }
-export function assetData(f) {
-  const customer = f.service.all("SELECT * FROM customers ORDER BY name")[0];
-  const vehicle = f.service.all(
-    "SELECT * FROM vehicles WHERE status='available' ORDER BY daily_rate_cents",
+export async function assetData(f) {
+  const customer = (
+    await f.service.all("SELECT * FROM customers ORDER BY name")
+  )[0];
+  const vehicle = (
+    await f.service.all(
+      "SELECT * FROM vehicles WHERE status='available' ORDER BY daily_rate_cents",
+    )
   )[0];
   const startDate = new Date().toISOString().slice(0, 10),
     endDate = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
@@ -53,7 +69,10 @@ export async function rental(f, method = "cash") {
   return (
     await f.employee
       .post("/api/rentals")
-      .send({ ...assetData(f), paymentMethod: method })
+      .send({
+        ...(await assetData(f)),
+        paymentMethod: method,
+      })
       .expect(201)
   ).body;
 }

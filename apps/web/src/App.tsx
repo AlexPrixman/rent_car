@@ -106,6 +106,12 @@ function Layout() {
           </time>
         </header>
         <main id="main" className="main-content" tabIndex={-1}>
+          {config.data?.demoLogin && (
+            <div className="demo-note">
+              Portfolio demo · shared sample data · no real charges. Please use
+              fictional customer details.
+            </div>
+          )}
           <Outlet />
         </main>
         <footer className="workspace-footer">

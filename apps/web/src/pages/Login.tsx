@@ -91,14 +91,17 @@ export default function Login() {
           </form>
           {config.data?.demoLogin && (
             <div className="demo-login">
-              <strong>Try the local demo</strong>
+              <strong>Try the demo</strong>
               <p>
                 Manager: <code>manager</code> · Employee: <code>employee</code>
               </p>
               <p>
                 Password: <code>RentDesk123!</code>
               </p>
-              <small>Demo checkout simulates payment. No real charge.</small>
+              <small>
+                Shared sample workspace. Use fictional data only. Checkout
+                simulates payment; no real charges.
+              </small>
             </div>
           )}
         </div>

@@ -8,17 +8,19 @@ import { fixture, rental, assetData, extraVehicle } from "./helpers.js";
 import { configuration } from "../lib/config.js";
 import { createApp } from "../app.js";
 import { seed } from "../lib/seed.js";
-
 test("missing JSON fields, arrays, and past pickup dates produce validation errors", async (t) => {
   const f = await fixture(t);
   await f.employee.post("/api/customers").send({}).expect(400);
   await f.employee.post("/api/vehicles").send([]).expect(400);
   await f.employee
     .post("/api/rentals")
-    .send({ ...assetData(f), startDate: "2020-01-01", endDate: "2020-01-02" })
+    .send({
+      ...(await assetData(f)),
+      startDate: "2020-01-01",
+      endDate: "2020-01-02",
+    })
     .expect(400);
 });
-
 test("definitively rejected checkout creation unlocks an unpaid reservation", async (t) => {
   const gateways = {
     enabled: () => true,
@@ -28,25 +30,38 @@ test("definitively rejected checkout creation unlocks an unpaid reservation", as
       throw error;
     },
   };
-  const f = await fixture(t, { mode: "sandbox" }, { gateways }),
+  const f = await fixture(
+      t,
+      {
+        mode: "sandbox",
+      },
+      {
+        gateways,
+      },
+    ),
     r = await rental(f, "stripe");
   await f.employee
     .post(`/api/rentals/${r.id}/payments/link`)
     .send({})
     .expect(400);
-  assert.equal(f.service.rental(r.id).payments[0].status, "failed");
+  assert.equal((await f.service.rental(r.id)).payments[0].status, "failed");
   await f.employee
     .patch(`/api/rentals/${r.id}`)
-    .send({ ...assetData(f), paymentMethod: "cash" })
+    .send({
+      ...(await assetData(f)),
+      paymentMethod: "cash",
+    })
     .expect(200);
 });
-
 test("sessions require login, hide credentials, and logout revokes access", async (t) => {
   const f = await fixture(t);
   await f.request.get("/api/customers").expect(401);
   await f.request
     .post("/api/auth/login")
-    .send({ username: "manager", password: "incorrect" })
+    .send({
+      username: "manager",
+      password: "incorrect",
+    })
     .expect(401);
   const me = (await f.employee.get("/api/auth/me").expect(200)).body;
   assert.deepEqual(Object.keys(me).sort(), [
@@ -61,11 +76,18 @@ test("sessions require login, hide credentials, and logout revokes access", asyn
 });
 test("server enforces manager-only employee list/create/edit", async (t) => {
   const f = await fixture(t),
-    id = f.service.get("SELECT id FROM users WHERE username='employee'").id;
+    id = (await f.service.get("SELECT id FROM users WHERE username='employee'"))
+      .id;
   for (const call of [
     () => f.employee.get("/api/employees"),
-    () => f.employee.post("/api/employees").send({ name: "Intruder" }),
-    () => f.employee.patch(`/api/employees/${id}`).send({ role: "Manager" }),
+    () =>
+      f.employee.post("/api/employees").send({
+        name: "Intruder",
+      }),
+    () =>
+      f.employee.patch(`/api/employees/${id}`).send({
+        role: "Manager",
+      }),
   ])
     await call().expect(403);
   const newUser = (
@@ -81,23 +103,36 @@ test("server enforces manager-only employee list/create/edit", async (t) => {
   ).body;
   await f.manager
     .patch(`/api/employees/${newUser.id}`)
-    .send({ name: "Staff Edited", role: "Manager", active: true, password: "" })
+    .send({
+      name: "Staff Edited",
+      role: "Manager",
+      active: true,
+      password: "",
+    })
     .expect(200);
   const staff = request.agent(f.app);
   await staff
     .post("/api/auth/login")
-    .send({ username: "newstaff", password: "NewPassword123!" })
+    .send({
+      username: "newstaff",
+      password: "NewPassword123!",
+    })
     .expect(200);
   await staff.get("/api/employees").expect(200);
   await f.manager
     .patch(`/api/employees/${newUser.id}`)
-    .send({ name: "Staff Edited", role: "Employee", active: true })
+    .send({
+      name: "Staff Edited",
+      role: "Employee",
+      active: true,
+    })
     .expect(200);
   await staff.get("/api/employees").expect(403);
 });
 test("deactivation and password reset immediately revoke employee sessions", async (t) => {
   const f = await fixture(t),
-    id = f.service.get("SELECT id FROM users WHERE username='employee'").id;
+    id = (await f.service.get("SELECT id FROM users WHERE username='employee'"))
+      .id;
   await f.manager
     .patch(`/api/employees/${id}`)
     .send({
@@ -110,32 +145,55 @@ test("deactivation and password reset immediately revoke employee sessions", asy
   await f.employee.get("/api/customers").expect(401);
   await f.employee
     .post("/api/auth/login")
-    .send({ username: "employee", password: "RentDesk123!" })
+    .send({
+      username: "employee",
+      password: "RentDesk123!",
+    })
     .expect(401);
   await f.employee
     .post("/api/auth/login")
-    .send({ username: "employee", password: "ResetPassword123!" })
+    .send({
+      username: "employee",
+      password: "ResetPassword123!",
+    })
     .expect(200);
   await f.manager
     .patch(`/api/employees/${id}`)
-    .send({ name: "Jamie", role: "Employee", active: false })
+    .send({
+      name: "Jamie",
+      role: "Employee",
+      active: false,
+    })
     .expect(200);
   await f.employee.get("/api/vehicles").expect(401);
   await f.employee
     .post("/api/auth/login")
-    .send({ username: "employee", password: "ResetPassword123!" })
+    .send({
+      username: "employee",
+      password: "ResetPassword123!",
+    })
     .expect(401);
 });
 test("manager cannot demote or deactivate themselves; inputs and uniqueness are checked", async (t) => {
   const f = await fixture(t),
-    id = f.service.get("SELECT id FROM users WHERE username='manager'").id;
+    id = (await f.service.get("SELECT id FROM users WHERE username='manager'"))
+      .id;
   for (const patch of [
-    { role: "Employee", active: true },
-    { role: "Manager", active: false },
+    {
+      role: "Employee",
+      active: true,
+    },
+    {
+      role: "Manager",
+      active: false,
+    },
   ])
     await f.manager
       .patch(`/api/employees/${id}`)
-      .send({ name: "Alex", ...patch })
+      .send({
+        name: "Alex",
+        ...patch,
+      })
       .expect(409);
   await f.manager
     .post("/api/employees")
@@ -171,11 +229,19 @@ test("employees can create/edit/search/archive customers and vehicles", async (t
   ).body;
   await f.employee
     .post("/api/customers")
-    .send({ name: "Other", phone: "555", licenseNumber: "sam-123" })
+    .send({
+      name: "Other",
+      phone: "555",
+      licenseNumber: "sam-123",
+    })
     .expect(409);
   await f.employee
     .patch(`/api/customers/${c.id}`)
-    .send({ ...c, name: "Sam Updated", active: false })
+    .send({
+      ...c,
+      name: "Sam Updated",
+      active: false,
+    })
     .expect(200);
   assert.equal(
     (await f.employee.get("/api/customers?q=Sam")).body.items[0].name,
@@ -184,7 +250,11 @@ test("employees can create/edit/search/archive customers and vehicles", async (t
   const v = await extraVehicle(f);
   await f.employee
     .patch(`/api/vehicles/${v.id}`)
-    .send({ ...v, dailyRate: "65.99", status: "retired" })
+    .send({
+      ...v,
+      dailyRate: "65.99",
+      status: "retired",
+    })
     .expect(200);
   const updated = (await f.employee.get(`/api/vehicles?q=${v.plate}`)).body
     .items[0];
@@ -192,7 +262,10 @@ test("employees can create/edit/search/archive customers and vehicles", async (t
   assert.equal(updated.status, "retired");
   await f.employee
     .post("/api/vehicles")
-    .send({ ...v, dailyRate: "1.999" })
+    .send({
+      ...v,
+      dailyRate: "1.999",
+    })
     .expect(400);
 });
 test("rental cash → pickup → return works and preserves snapshot pricing", async (t) => {
@@ -202,24 +275,33 @@ test("rental cash → pickup → return works and preserves snapshot pricing", a
   assert.equal(r.days, 2);
   await f.employee
     .post(`/api/rentals/${r.id}/pickup`)
-    .send({ odometer: 12500 })
+    .send({
+      odometer: 12500,
+    })
     .expect(409);
   await f.employee
     .post(`/api/rentals/${r.id}/payments/cash`)
-    .send({ received: false })
+    .send({
+      received: false,
+    })
     .expect(400);
   await f.employee
     .post(`/api/rentals/${r.id}/payments/cash`)
-    .send({ received: true, reference: "CASH-001" })
+    .send({
+      received: true,
+      reference: "CASH-001",
+    })
     .expect(200);
   const repeated = (
     await f.employee
       .post(`/api/rentals/${r.id}/payments/cash`)
-      .send({ received: true })
+      .send({
+        received: true,
+      })
       .expect(200)
   ).body;
   assert.equal(repeated.payments.length, 1);
-  const v = f.service.required("vehicles", r.vehicleId);
+  const v = await f.service.required("vehicles", r.vehicleId);
   await f.employee
     .patch(`/api/vehicles/${v.id}`)
     .send({
@@ -236,35 +318,43 @@ test("rental cash → pickup → return works and preserves snapshot pricing", a
   await f.employee
     .patch(`/api/rentals/${r.id}`)
     .send({
-      ...assetData(f),
+      ...(await assetData(f)),
       endDate: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
     })
     .expect(409);
   await f.employee
     .post(`/api/rentals/${r.id}/pickup`)
-    .send({ odometer: 12500 })
+    .send({
+      odometer: 12500,
+    })
     .expect(200);
   await f.employee
     .post(`/api/rentals/${r.id}/return`)
-    .send({ odometer: 12499 })
+    .send({
+      odometer: 12499,
+    })
     .expect(400);
   const done = (
     await f.employee
       .post(`/api/rentals/${r.id}/return`)
-      .send({ odometer: 12700 })
+      .send({
+        odometer: 12700,
+      })
       .expect(200)
   ).body;
   assert.equal(done.status, "completed");
   assert.equal(done.totalCents, 9000);
-  assert.equal(f.service.required("vehicles", v.id).odometer, 12700);
+  assert.equal((await f.service.required("vehicles", v.id)).odometer, 12700);
   await f.employee
     .post(`/api/rentals/${r.id}/return`)
-    .send({ odometer: 12800 })
+    .send({
+      odometer: 12800,
+    })
     .expect(409);
 });
 test("atomic reservations prevent overlap; adjacent dates are allowed", async (t) => {
   const f = await fixture(t),
-    body = assetData(f);
+    body = await assetData(f);
   const attempts = await Promise.all([
     f.employee.post("/api/rentals").send(body),
     f.manager.post("/api/rentals").send(body),
@@ -284,8 +374,8 @@ test("atomic reservations prevent overlap; adjacent dates are allowed", async (t
 test("open rentals block customer archive and vehicle retirement; cancellation releases dates", async (t) => {
   const f = await fixture(t),
     r = await rental(f),
-    c = f.service.required("customers", r.customerId),
-    v = f.service.required("vehicles", r.vehicleId);
+    c = await f.service.required("customers", r.customerId),
+    v = await f.service.required("vehicles", r.vehicleId);
   await f.employee
     .patch(`/api/customers/${c.id}`)
     .send({
@@ -310,7 +400,10 @@ test("open rentals block customer archive and vehicle retirement; cancellation r
     })
     .expect(409);
   await f.employee.post(`/api/rentals/${r.id}/cancel`).send({}).expect(200);
-  await f.employee.post("/api/rentals").send(assetData(f)).expect(201);
+  await f.employee
+    .post("/api/rentals")
+    .send(await assetData(f))
+    .expect(201);
 });
 test("unpaid reservations can be edited; snapshots change with selected customer/vehicle", async (t) => {
   const f = await fixture(t),
@@ -319,7 +412,11 @@ test("unpaid reservations can be edited; snapshots change with selected customer
   const changed = (
     await f.employee
       .patch(`/api/rentals/${r.id}`)
-      .send({ ...assetData(f), vehicleId: v.id, notes: "Meet at desk" })
+      .send({
+        ...(await assetData(f)),
+        vehicleId: v.id,
+        notes: "Meet at desk",
+      })
       .expect(200)
   ).body;
   assert.equal(changed.vehicleLabel, "Honda Civic");
@@ -343,10 +440,10 @@ test("demo Stripe and PayPal links settle idempotently without exposing customer
     assert.equal(summary.customerName, undefined);
     await f.request.post(`/api/checkout/${token}/demo`).send({}).expect(200);
     await f.request.post(`/api/checkout/${token}/demo`).send({}).expect(200);
-    assert.equal(f.service.rental(r.id).payments.length, 1);
-    assert.equal(f.service.rental(r.id).payments[0].status, "paid");
+    assert.equal((await f.service.rental(r.id)).payments.length, 1);
+    assert.equal((await f.service.rental(r.id)).payments[0].status, "paid");
     await f.employee.post(`/api/rentals/${r.id}/cancel`).send({}).expect(200);
-    assert.equal(f.service.rental(r.id).payments[0].status, "paid");
+    assert.equal((await f.service.rental(r.id)).payments[0].status, "paid");
   }
 });
 test("cancelled links cannot be used; pending links lock terms until cancelled", async (t) => {
@@ -357,7 +454,10 @@ test("cancelled links cannot be used; pending links lock terms until cancelled",
     ).body;
   await f.employee
     .patch(`/api/rentals/${r.id}`)
-    .send({ ...assetData(f), paymentMethod: "cash" })
+    .send({
+      ...(await assetData(f)),
+      paymentMethod: "cash",
+    })
     .expect(409);
   await f.employee
     .post(`/api/rentals/${r.id}/payments/cancel`)
@@ -371,7 +471,10 @@ test("cancelled links cannot be used; pending links lock terms until cancelled",
     .expect(409);
   await f.employee
     .patch(`/api/rentals/${r.id}`)
-    .send({ ...assetData(f), paymentMethod: "cash" })
+    .send({
+      ...(await assetData(f)),
+      paymentMethod: "cash",
+    })
     .expect(200);
 });
 test("failed provider creation retries reuse the payment and idempotency key", async (t) => {
@@ -388,7 +491,15 @@ test("failed provider creation retries reuse the payment and idempotency key", a
       };
     },
   };
-  const f = await fixture(t, { mode: "sandbox" }, { gateways }),
+  const f = await fixture(
+      t,
+      {
+        mode: "sandbox",
+      },
+      {
+        gateways,
+      },
+    ),
     r = await rental(f, "stripe");
   await f.employee
     .post(`/api/rentals/${r.id}/payments/link`)
@@ -400,16 +511,18 @@ test("failed provider creation retries reuse the payment and idempotency key", a
     .send({})
     .expect(200);
   assert.equal(ids[0], ids[1]);
-  assert.equal(f.service.rental(r.id).payments.length, 1);
+  assert.equal((await f.service.rental(r.id)).payments.length, 1);
 });
 test("unconfigured real providers are unavailable and demo routes are disabled in sandbox", async (t) => {
-  const f = await fixture(t, { mode: "sandbox" }),
+  const f = await fixture(t, {
+      mode: "sandbox",
+    }),
     r = await rental(f, "stripe");
   await f.employee
     .post(`/api/rentals/${r.id}/payments/link`)
     .send({})
     .expect(503);
-  assert.equal(f.service.rental(r.id).payments.length, 0);
+  assert.equal((await f.service.rental(r.id)).payments.length, 0);
   await f.request
     .post(`/api/checkout/${"a".repeat(64)}/demo`)
     .send({})
@@ -420,7 +533,11 @@ test("same-origin checks reject cross-site mutations before changing data", asyn
   await f.employee
     .post("/api/customers")
     .set("Origin", "https://attacker.example")
-    .send({ name: "Bad", phone: "555", licenseNumber: "BAD" })
+    .send({
+      name: "Bad",
+      phone: "555",
+      licenseNumber: "BAD",
+    })
     .expect(403);
   await f.employee
     .post("/api/auth/logout")
@@ -431,19 +548,28 @@ test("same-origin checks reject cross-site mutations before changing data", asyn
 });
 test("records and session cookies survive an API restart on the same SQLite database", async () => {
   const dir = mkdtempSync(join(tmpdir(), "rentdesk-persist-")),
-    config = configuration({ DATABASE_PATH: join(dir, "db.sqlite") });
-  let runtime = createApp(config, { loginLimit: 1000 });
+    config = configuration({
+      DATABASE_PATH: join(dir, "db.sqlite"),
+    });
+  let runtime = await createApp(config, {
+    loginLimit: 1000,
+  });
   try {
     await seed(runtime.db, config);
     const login = await request(runtime.app)
       .post("/api/auth/login")
-      .send({ username: "manager", password: "RentDesk123!" })
+      .send({
+        username: "manager",
+        password: "RentDesk123!",
+      })
       .expect(200);
     const cookie = login.headers["set-cookie"][0].split(";")[0];
     assert.match(login.headers["set-cookie"][0], /HttpOnly/);
     assert.match(login.headers["set-cookie"][0], /SameSite=Lax/);
-    runtime.close();
-    runtime = createApp(config, { loginLimit: 1000 });
+    await runtime.close();
+    runtime = await createApp(config, {
+      loginLimit: 1000,
+    });
     const records = (
       await request(runtime.app)
         .get("/api/customers")
@@ -452,7 +578,10 @@ test("records and session cookies survive an API restart on the same SQLite data
     ).body;
     assert.equal(records.total, 2);
   } finally {
-    runtime.close();
-    rmSync(dir, { recursive: true, force: true });
+    await runtime.close();
+    rmSync(dir, {
+      recursive: true,
+      force: true,
+    });
   }
 });

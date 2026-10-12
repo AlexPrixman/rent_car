@@ -1,9 +1,8 @@
 import { RentalService } from "./domain.js";
 import { password, fail } from "./validation.js";
-
 export async function seed(db, config, env = process.env) {
   const s = new RentalService(db, config);
-  if (config.production) {
+  if (config.production && !config.portfolioDemo) {
     const name = env.SEED_MANAGER_USERNAME || "manager";
     if (!env.SEED_MANAGER_PASSWORD || env.SEED_MANAGER_PASSWORD.length < 12)
       fail(
@@ -11,7 +10,12 @@ export async function seed(db, config, env = process.env) {
         "Set SEED_MANAGER_PASSWORD to a unique password of at least 12 characters",
       );
     password(env.SEED_MANAGER_PASSWORD);
-    if (!s.get("SELECT id FROM users WHERE username=?", name))
+    if (
+      !(await s.get(
+        "SELECT id FROM users WHERE lower(username)=lower(?)",
+        name,
+      ))
+    )
       await s.createUser(
         {
           username: name,
@@ -23,7 +27,7 @@ export async function seed(db, config, env = process.env) {
       );
     return;
   }
-  if (s.get("SELECT id FROM users LIMIT 1")) return;
+  if (await s.get("SELECT id FROM users LIMIT 1")) return;
   const manager = await s.createUser(
     {
       username: "manager",
@@ -56,7 +60,7 @@ export async function seed(db, config, env = process.env) {
       licenseNumber: "DEMO-1002",
     },
   ])
-    s.createCustomer(c, manager.id);
+    await s.createCustomer(c, manager.id);
   for (const v of [
     {
       plate: "RD-100",
@@ -89,5 +93,5 @@ export async function seed(db, config, env = process.env) {
       odometer: 31000,
     },
   ])
-    s.createVehicle(v, manager.id);
+    await s.createVehicle(v, manager.id);
 }
