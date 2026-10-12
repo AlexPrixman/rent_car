@@ -14,8 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -30,12 +32,12 @@ jobs:
       - name: Container smoke test
         run: |
           docker run -d --rm --name rentdesk-ci -p 127.0.0.1:4000:4000 -e NODE_ENV=development -e PAYMENTS_MODE=demo -e PUBLIC_APP_URL=http://localhost:4000 rentdesk:ci
-          curl --fail --retry 10 --retry-delay 1 --retry-connrefused http://127.0.0.1:4000/api/health
+          curl --fail --max-time 3 --retry 10 --retry-delay 1 --retry-all-errors http://127.0.0.1:4000/api/health
           curl --fail http://127.0.0.1:4000/login > /dev/null
       - name: Stop container
         if: always()
         run: docker rm -f rentdesk-ci || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report
