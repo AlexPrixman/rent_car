@@ -284,6 +284,27 @@ const paypalConfig = {
   paypalSecret: "test_secret",
   paypalWebhookId: "WH-CONTRACT",
 };
+
+test("PayPal creation rejection releases the unpaid rental for correction", async (t) => {
+  const h = paypalHarness();
+  const g = createGateways(paypalConfig, {
+    fetcher: async (url, init) =>
+      new URL(url).pathname === "/v2/checkout/orders" && init.method === "POST"
+        ? json({ name: "UNPROCESSABLE_ENTITY" }, 422)
+        : h.fetcher(url, init),
+  });
+  const f = await fixture(t, paypalConfig, { gateways: g }),
+    r = await rental(f, "paypal");
+  await f.employee
+    .post(`/api/rentals/${r.id}/payments/link`)
+    .send({})
+    .expect(400);
+  assert.equal(f.service.rental(r.id).payments[0].status, "failed");
+  await f.employee
+    .patch(`/api/rentals/${r.id}`)
+    .send({ ...r, paymentMethod: "cash" })
+    .expect(200);
+});
 test("PayPal OAuth/create/approve/capture contract uses fixed amount and idempotency", async (t) => {
   const h = paypalHarness(),
     g = createGateways(paypalConfig, { fetcher: h.fetcher }),
