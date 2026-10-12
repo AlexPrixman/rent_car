@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,6 +8,7 @@ import { seed } from "../lib/seed.js";
 const directory = mkdtempSync(join(tmpdir(), "rentdesk-e2e-"));
 const config = configuration({
   DATABASE_PATH: join(directory, "e2e.sqlite"),
+  DATABASE_URL: process.env.E2E_DATABASE_URL || "",
   PUBLIC_APP_URL: "http://127.0.0.1:4001",
   PORT: "4001",
   PAYMENTS_MODE: "demo",
@@ -14,6 +16,9 @@ const config = configuration({
 });
 const runtime = await createApp(config, {
   loginLimit: 1000,
+  ...(process.env.E2E_DATABASE_URL
+    ? { databaseSchema: "rentdesk_test_" + randomUUID().replaceAll("-", "_") }
+    : {}),
 });
 await seed(runtime.db, config);
 const server = runtime.app.listen(config.port, "127.0.0.1", () =>

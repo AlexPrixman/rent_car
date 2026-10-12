@@ -45,6 +45,8 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+        env:
+          E2E_DATABASE_URL: postgres://rentdesk:isolated_ci_password@localhost:5432/rentdesk_ci
       - name: Build container
         run: docker build -t rentdesk:ci .
       - name: Container smoke test
