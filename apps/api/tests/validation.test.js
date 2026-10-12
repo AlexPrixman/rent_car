@@ -73,3 +73,8 @@ test("public portfolio demo is explicit and rejects merchant secrets", () => {
     configuration({ ...env, PUBLIC_APP_URL: "http://demo.example.com" }),
   );
 });
+
+test("Render's injected HTTPS origin is used when no explicit app URL is configured", () => {
+  const config = configuration({NODE_ENV:"production", RENDER_EXTERNAL_URL:"https://rentdesk.onrender.com", SESSION_SECRET:"x".repeat(40), PAYMENTS_MODE:"sandbox"});
+  assert.equal(config.publicUrl,"https://rentdesk.onrender.com");
+});

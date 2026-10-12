@@ -37,7 +37,7 @@ Run the automated checks from the README and perform the real Stripe and PayPal 
 
 ## Render Free + Neon
 
-Use a free Node web service from this repository, with `npm ci && npm run build` as the build command and `npm start` as the start command. Node 24 is pinned by `.nvmrc`. Deploy one instance. Set `DATABASE_URL` to the Neon connection string (pooled for application traffic), `NODE_ENV=production`, `PUBLIC_APP_URL` to the exact Render HTTPS URL, `SESSION_SECRET` to a unique random secret, and `TRUST_PROXY=true`. No disk is needed with PostgreSQL.
+Use a free Node web service from this repository, with `npm ci --include=dev && npm run build` as the build command and `npm start` as the start command. The package engines require Node 24. Deploy one instance. Set `DATABASE_URL` to the Neon connection string (pooled for application traffic), `NODE_ENV=production`, `PUBLIC_APP_URL` to the exact Render HTTPS URL, `SESSION_SECRET` to a unique random secret, and `TRUST_PROXY=true`. No disk is needed with PostgreSQL.
 
 For a **public portfolio demonstration**, also set `PORTFOLIO_DEMO=true` and `PAYMENTS_MODE=demo`. Startup seeds the shared sample accounts only when there are no users. This mode rejects Stripe keys and PayPal secrets and labels the workspace and checkout as a demo. Never enter real customer details.
 
@@ -46,3 +46,5 @@ For a **business deployment**, leave `PORTFOLIO_DEMO=false`, use sandbox/live pr
 The schema initializer uses the direct connection for test/validation workflows and a transaction-scoped advisory lock. With pooled application traffic all initialization statements run inside one transaction, without session-level state or named prepared statements. Only disposable CI schemas use a session-level search path, against the direct local CI database. Existing Neon Auth tables are untouched.
 
 Verification includes `/api/health`, secure sign-in cookies, both role workflows, booking conflicts, simulated checkout, and persistence after redeployment.
+
+On Render, `RENDER_EXTERNAL_URL` supplies the HTTPS application origin when `PUBLIC_APP_URL` is omitted. Override `PUBLIC_APP_URL` for a custom domain. The build includes dev dependencies explicitly because Vite and TypeScript are build tools, even though the runtime uses production mode.

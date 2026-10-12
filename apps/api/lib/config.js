@@ -14,7 +14,7 @@ export function configuration(env = process.env) {
       "Portfolio demo requires simulated payments and no merchant secrets",
     );
   const mode = env.PAYMENTS_MODE || (production ? "sandbox" : "demo");
-  const publicUrl = (env.PUBLIC_APP_URL || "http://localhost:5173").replace(
+  const publicUrl = (env.PUBLIC_APP_URL || env.RENDER_EXTERNAL_URL || "http://localhost:5173").replace(
     /\/$/,
     "",
   );
