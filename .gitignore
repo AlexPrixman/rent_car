@@ -1,0 +1,11 @@
+node_modules/
+apps/web/dist/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+data/
+playwright-report/
+test-results/
+coverage/
+*.log
