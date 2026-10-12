@@ -1,0 +1,14 @@
+services:
+  rentdesk:
+    build: .
+    ports: ["4000:4000"]
+    environment:
+      NODE_ENV: development
+      PAYMENTS_MODE: demo
+      PUBLIC_APP_URL: http://localhost:4000
+      SESSION_SECRET: local-container-demo-secret-change-for-production
+      DATABASE_PATH: /app/data/rentdesk.sqlite
+    volumes:
+      - rentdesk-data:/app/data
+volumes:
+  rentdesk-data:

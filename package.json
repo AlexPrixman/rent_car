@@ -1,0 +1,25 @@
+{
+  "name": "rentdesk",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "start": "node apps/api/server.js",
+    "seed": "node apps/api/scripts/seed.js",
+    "build": "npm run build -w @rentdesk/web",
+    "test": "npm run test -w @rentdesk/api && npm run test -w @rentdesk/web",
+    "test:e2e": "playwright test",
+    "check": "npm test && npm run build && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
