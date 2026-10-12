@@ -1,6 +1,12 @@
 import Stripe from "stripe";
 import { HttpError, fail } from "./validation.js";
 
+function paypalError(status, message) {
+  const error = new HttpError(status === 422 ? 409 : 502, message);
+  error.statusCode = status;
+  throw error;
+}
+
 export function approvedCheckoutUrl(url, provider, mode) {
   const parsed = new URL(url);
   const allowed =
@@ -67,7 +73,10 @@ export class PayPalClient {
         signal: AbortSignal.timeout(10000),
       });
       if (!response.ok)
-        fail(502, "PayPal authentication failed; check merchant configuration");
+        paypalError(
+          response.status,
+          "PayPal authentication failed; check merchant configuration",
+        );
       const body = await response.json();
       if (!body.access_token || !Number.isFinite(body.expires_in))
         fail(502, "Invalid PayPal authentication response");
@@ -104,8 +113,8 @@ export class PayPalClient {
       return this.request(path, { method, body, idempotency }, false);
     }
     if (!response.ok)
-      fail(
-        response.status === 422 ? 409 : 502,
+      paypalError(
+        response.status,
         "PayPal could not process this request; retry or check the merchant dashboard",
       );
     return response.json();
