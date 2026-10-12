@@ -1,111 +1,209 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { AsyncLocalStorage } from "node:async_hooks";
+import pg from "pg";
 import session from "express-session";
+import { sqliteSchema, postgresSchema } from "./schema.js";
 
-export function openDatabase(path) {
-  if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
-  const db = new DatabaseSync(path);
-  db.exec(`PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE COLLATE NOCASE, name TEXT NOT NULL,
-      password_hash TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('Manager','Employee')),
-      active INTEGER NOT NULL DEFAULT 1, session_version INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS customers (
-      id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL DEFAULT '', phone TEXT NOT NULL,
-      license_number TEXT NOT NULL UNIQUE COLLATE NOCASE, active INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS vehicles (
-      id TEXT PRIMARY KEY, plate TEXT NOT NULL UNIQUE COLLATE NOCASE, make TEXT NOT NULL, model TEXT NOT NULL,
-      year INTEGER NOT NULL, category TEXT NOT NULL, daily_rate_cents INTEGER NOT NULL CHECK(daily_rate_cents>0),
-      currency TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('available','maintenance','retired')),
-      odometer INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS counters (name TEXT PRIMARY KEY, value INTEGER NOT NULL);
-    INSERT OR IGNORE INTO counters VALUES ('rental',999);
-    CREATE TABLE IF NOT EXISTS rentals (
-      id TEXT PRIMARY KEY, number INTEGER NOT NULL UNIQUE, customer_id TEXT NOT NULL REFERENCES customers(id),
-      vehicle_id TEXT NOT NULL REFERENCES vehicles(id), customer_name TEXT NOT NULL, vehicle_label TEXT NOT NULL,
-      plate TEXT NOT NULL, start_date TEXT NOT NULL, end_date TEXT NOT NULL, days INTEGER NOT NULL,
-      daily_rate_cents INTEGER NOT NULL, total_cents INTEGER NOT NULL, currency TEXT NOT NULL,
-      payment_method TEXT NOT NULL CHECK(payment_method IN ('cash','stripe','paypal')),
-      status TEXT NOT NULL CHECK(status IN ('reserved','active','completed','cancelled')),
-      notes TEXT NOT NULL DEFAULT '', pickup_odometer INTEGER, return_odometer INTEGER,
-      picked_up_at TEXT, returned_at TEXT, created_by TEXT NOT NULL REFERENCES users(id),
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
-    CREATE INDEX IF NOT EXISTS rental_availability ON rentals(vehicle_id,status,start_date,end_date);
-    CREATE TABLE IF NOT EXISTS payments (
-      id TEXT PRIMARY KEY, rental_id TEXT NOT NULL REFERENCES rentals(id), provider TEXT NOT NULL,
-      mode TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('creating','pending','processing','paid','failed','cancelled')),
-      amount_cents INTEGER NOT NULL, currency TEXT NOT NULL, external_id TEXT UNIQUE, checkout_url TEXT,
-      public_token TEXT NOT NULL UNIQUE, reference TEXT, last_error TEXT,
-      created_by TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
-    CREATE UNIQUE INDEX IF NOT EXISTS one_current_payment ON payments(rental_id)
-      WHERE status IN ('creating','pending','processing','paid');
-    CREATE TABLE IF NOT EXISTS webhook_events (provider TEXT NOT NULL, event_id TEXT NOT NULL,
-      processed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(provider,event_id));
-    CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY, actor_id TEXT REFERENCES users(id),
-      action TEXT NOT NULL, entity_id TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS sessions (sid TEXT PRIMARY KEY, data TEXT NOT NULL, expires INTEGER NOT NULL);
-    PRAGMA user_version=1;`);
-  return db;
-}
+// All money and counts in this app are bounded below Number.MAX_SAFE_INTEGER.
+pg.types.setTypeParser(20, (value) => Number(value));
+pg.types.setTypeParser(1700, (value) => Number(value));
 
-export function atomic(db, callback) {
-  db.exec("BEGIN IMMEDIATE");
-  try {
-    const result = callback();
-    db.exec("COMMIT");
-    return result;
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
+export function postgresSql(sql) {
+  let parameter = 0,
+    quoted = false,
+    result = "";
+  for (let i = 0; i < sql.length; i++) {
+    const c = sql[i];
+    if (c === "'") {
+      if (quoted && sql[i + 1] === "'") {
+        result += "''";
+        i++;
+        continue;
+      }
+      quoted = !quoted;
+    }
+    result += c === "?" && !quoted ? `$${++parameter}` : c;
   }
+  return result;
 }
 
-export class SqliteSessionStore extends session.Store {
+export async function openDatabase(
+  path,
+  connectionString = "",
+  temporarySchema = "",
+) {
+  const context = new AsyncLocalStorage();
+  let pool, sqlite;
+  let queue = Promise.resolve();
+  async function serialize(job) {
+    const previous = queue;
+    let release;
+    queue = new Promise((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      return await job();
+    } finally {
+      release();
+    }
+  }
+  if (connectionString) {
+    if (temporarySchema && !/^rentdesk_test_[a-f0-9_]+$/.test(temporarySchema))
+      throw new Error("Invalid temporary test schema");
+    pool = new pg.Pool({
+      connectionString,
+      ...(temporarySchema
+        ? { options: `-c search_path=${temporarySchema}` }
+        : {}),
+      max: 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 15000,
+      query_timeout: 15000,
+    });
+    pool.on("error", (error) =>
+      console.error("Database connection failed:", error.code || error.name),
+    );
+    const client = await pool.connect();
+    let initializationError;
+    try {
+      if (temporarySchema)
+        await client.query(`CREATE SCHEMA "${temporarySchema}"`);
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(726381)");
+      await client.query(postgresSchema);
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      initializationError = error;
+    } finally {
+      client.release();
+    }
+    if (initializationError) {
+      await pool.end();
+      throw initializationError;
+    }
+  } else {
+    if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
+    sqlite = new DatabaseSync(path);
+    sqlite.exec(sqliteSchema);
+  }
+  async function execute(sql, args, mode) {
+    const current = context.getStore();
+    if (pool) {
+      const result = await (current?.client || pool).query(
+        postgresSql(sql),
+        args.map((v) => (typeof v === "boolean" ? Number(v) : v)),
+      );
+      return mode === "all"
+        ? result.rows
+        : mode === "get"
+          ? result.rows[0]
+          : { changes: result.rowCount };
+    }
+    const job = () =>
+      sqlite
+        .prepare(sql)
+        [mode](...args.map((v) => (typeof v === "boolean" ? Number(v) : v)));
+    return current ? job() : serialize(job);
+  }
+  return {
+    dialect: pool ? "postgres" : "sqlite",
+    prepare(sql) {
+      return {
+        get: (...args) => execute(sql, args, "get"),
+        all: (...args) => execute(sql, args, "all"),
+        run: (...args) => execute(sql, args, "run"),
+      };
+    },
+    async transaction(job) {
+      if (context.getStore()) return job();
+      if (!pool)
+        return serialize(async () => {
+          sqlite.exec("BEGIN IMMEDIATE");
+          try {
+            const result = await context.run({ transaction: true }, job);
+            sqlite.exec("COMMIT");
+            return result;
+          } catch (error) {
+            sqlite.exec("ROLLBACK");
+            throw error;
+          }
+        });
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        // Serializes business mutations across connections and processes, preserving
+        // SQLite's original availability and payment invariants on a small demo.
+        await client.query("SELECT pg_advisory_xact_lock(726381)");
+        const result = await context.run({ client }, job);
+        await client.query("COMMIT");
+        return result;
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+    async close() {
+      if (pool) {
+        if (temporarySchema)
+          await pool.query(`DROP SCHEMA "${temporarySchema}" CASCADE`);
+        await pool.end();
+      } else sqlite.close();
+    },
+  };
+}
+
+export const atomic = (db, callback) => db.transaction(callback);
+
+export class DatabaseSessionStore extends session.Store {
   constructor(db) {
     super();
     this.db = db;
   }
   get(sid, callback) {
-    try {
-      const row = this.db
-        .prepare("SELECT data,expires FROM sessions WHERE sid=?")
-        .get(sid);
-      if (!row || row.expires <= Date.now()) {
-        if (row) this.db.prepare("DELETE FROM sessions WHERE sid=?").run(sid);
-        return callback(null, null);
-      }
-      callback(null, JSON.parse(row.data));
-    } catch (error) {
-      callback(error);
-    }
+    this.db
+      .prepare("SELECT data,expires FROM sessions WHERE sid=?")
+      .get(sid)
+      .then(async (row) => {
+        if (!row || row.expires <= Date.now()) {
+          if (row)
+            await this.db.prepare("DELETE FROM sessions WHERE sid=?").run(sid);
+          callback(null, null);
+        } else callback(null, JSON.parse(row.data));
+      })
+      .catch(callback);
   }
   set(sid, value, callback = () => {}) {
-    try {
-      this.db.prepare("DELETE FROM sessions WHERE expires<=?").run(Date.now());
-      this.db
-        .prepare("INSERT OR REPLACE INTO sessions VALUES (?,?,?)")
-        .run(
-          sid,
-          JSON.stringify(value),
-          new Date(value.cookie.expires).getTime(),
-        );
-      callback();
-    } catch (error) {
-      callback(error);
-    }
+    this.db
+      .transaction(async () => {
+        await this.db
+          .prepare("DELETE FROM sessions WHERE expires<=?")
+          .run(Date.now());
+        await this.db
+          .prepare(
+            `INSERT INTO sessions(sid,data,expires) VALUES (?,?,?)
+        ON CONFLICT(sid) DO UPDATE SET data=excluded.data,expires=excluded.expires`,
+          )
+          .run(
+            sid,
+            JSON.stringify(value),
+            new Date(value.cookie.expires).getTime(),
+          );
+      })
+      .then(() => callback())
+      .catch(callback);
   }
   destroy(sid, callback = () => {}) {
-    try {
-      this.db.prepare("DELETE FROM sessions WHERE sid=?").run(sid);
-      callback();
-    } catch (error) {
-      callback(error);
-    }
+    this.db
+      .prepare("DELETE FROM sessions WHERE sid=?")
+      .run(sid)
+      .then(() => callback())
+      .catch(callback);
   }
   touch(sid, value, callback) {
     this.set(sid, value, callback);

@@ -1,6 +1,6 @@
 # RentDesk
 
-A full-stack car rental workspace for employees and managers. Rebuilt from the original PHP project with React, TypeScript, Express, and persistent SQLite storage.
+A full-stack car rental workspace for employees and managers. Rebuilt from the original PHP project with React, TypeScript, Express, and persistent SQLite or PostgreSQL storage.
 
 ![RentDesk dashboard](docs/screenshots/dashboard-desktop.png)
 
@@ -38,7 +38,7 @@ Open **http://localhost:5173**. The first development startup creates sample cus
 
 The default `PAYMENTS_MODE=demo` creates clearly labelled simulated Stripe and PayPal checkout links. No merchant account or real payment details are needed. Cash, reservations, pickup/return, receipts, roles, and persistent storage work in this mode. Demo and sandbox totals are labelled separately from real online payments in the dashboard.
 
-Data and staff sessions are stored in `data/rentdesk.sqlite`, survive restarts, and are ignored by Git. Seeding preserves existing records. To run the built app on one port:
+When `DATABASE_URL` is configured, records and staff sessions use PostgreSQL. Otherwise, data and staff sessions are stored in `data/rentdesk.sqlite`, survive restarts, and are ignored by Git. Seeding preserves existing records. To run the built app on one port:
 
 ```bash
 npm run build
@@ -96,3 +96,11 @@ flowchart TD
 This app needs a Node.js server with persistent disk storage. GitHub Pages can host static sites, but cannot run this API or store the database. The provided Dockerfile runs the built frontend and API together. SQLite is intended for one API process on a persistent local volume; use a server database and a shared session store before scaling across multiple instances.
 
 The initial scope uses full rental payments and daily pricing in USD, EUR, or GBP. Deposits, partial payments, automatic refunds, taxes, insurance, late fees, identity-document uploads, public customer booking accounts, and a database import from the original PHP app are not implemented. The original source remains in Git history and the `legacy-php` branch.
+
+## Free hosted portfolio demo
+
+The app can run as one free Render web service with an external Neon PostgreSQL database. Set `DATABASE_URL` to the pooled application connection string; Render serves the built frontend and API together. Do not use SQLite on Render Free: its filesystem is ephemeral. Render free services sleep after idle periods, so the first request may take about a minute. Free plans have usage limits.
+
+The hosted portfolio configuration uses `NODE_ENV=production`, `PORTFOLIO_DEMO=true`, `PAYMENTS_MODE=demo`, an HTTPS `PUBLIC_APP_URL`, a unique session secret, and `TRUST_PROXY=true`. This explicit mode enables shared sample accounts and simulated checkout while keeping secure cookies. It rejects merchant secrets and real payment modes. Use fictional data only. The public demo is separate from a real rental business deployment.
+
+PostgreSQL mutations use an advisory transaction lock to preserve booking availability, ticket allocation, employee-role and payment invariants across connections. Sessions are persistent. The same API/payment-contract suite runs against SQLite and a PostgreSQL 18 CI service.

@@ -12,16 +12,21 @@ const config = configuration({
   PAYMENTS_MODE: "demo",
   SESSION_SECRET: "isolated-e2e-session-secret-only",
 });
-const runtime = createApp(config, { loginLimit: 1000 });
+const runtime = await createApp(config, {
+  loginLimit: 1000,
+});
 await seed(runtime.db, config);
 const server = runtime.app.listen(config.port, "127.0.0.1", () =>
   console.log("Isolated browser test server ready"),
 );
 for (const signal of ["SIGINT", "SIGTERM"])
   process.once(signal, () =>
-    server.close(() => {
-      runtime.close();
-      rmSync(directory, { recursive: true, force: true });
+    server.close(async () => {
+      await runtime.close();
+      rmSync(directory, {
+        recursive: true,
+        force: true,
+      });
       process.exit(0);
     }),
   );

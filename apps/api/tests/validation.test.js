@@ -52,3 +52,24 @@ test("production rejects demo payments, insecure origins, and development secret
   ])
     assert.throws(() => configuration({ ...env, ...patch }));
 });
+
+test("public portfolio demo is explicit and rejects merchant secrets", () => {
+  const env = {
+    NODE_ENV: "production",
+    PUBLIC_APP_URL: "https://demo.example.com",
+    SESSION_SECRET: "x".repeat(40),
+    PAYMENTS_MODE: "demo",
+    PORTFOLIO_DEMO: "true",
+  };
+  assert.equal(configuration(env).portfolioDemo, true);
+  assert.throws(() =>
+    configuration({ ...env, PAYPAL_CLIENT_SECRET: "secret" }),
+  );
+  assert.throws(() =>
+    configuration({ ...env, STRIPE_SECRET_KEY: "sk_test_secret" }),
+  );
+  assert.throws(() => configuration({ ...env, PAYMENTS_MODE: "live" }));
+  assert.throws(() =>
+    configuration({ ...env, PUBLIC_APP_URL: "http://demo.example.com" }),
+  );
+});

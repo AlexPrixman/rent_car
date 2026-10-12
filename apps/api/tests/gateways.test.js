@@ -10,7 +10,9 @@ import { fixture, rental } from "./helpers.js";
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+    },
   });
 const stripeConfig = {
   mode: "sandbox",
@@ -36,7 +38,10 @@ function stripeHarness() {
           url: "https://checkout.stripe.com/c/pay/cs_test_contract",
         });
       if (String(url).endsWith("/expire"))
-        return json({ ...current, status: "expired" });
+        return json({
+          ...current,
+          status: "expired",
+        });
       return json(current);
     }),
   });
@@ -58,16 +63,22 @@ function paidSession(p, patch = {}) {
     currency: p.currency.toLowerCase(),
     livemode: false,
     client_reference_id: p.id,
-    metadata: { paymentId: p.id, rentalId: p.rental_id },
+    metadata: {
+      paymentId: p.id,
+      rentalId: p.rental_id,
+    },
     payment_intent: "pi_contract",
     ...patch,
   };
 }
-
 test("Stripe SDK contract sends exact amount, metadata, URLs, and stable idempotency", async (t) => {
   const h = stripeHarness(),
-    g = createGateways(stripeConfig, { stripeClient: h.client }),
-    f = await fixture(t, stripeConfig, { gateways: g }),
+    g = createGateways(stripeConfig, {
+      stripeClient: h.client,
+    }),
+    f = await fixture(t, stripeConfig, {
+      gateways: g,
+    }),
     r = await rental(f, "stripe");
   const link = (
     await f.employee
@@ -75,7 +86,7 @@ test("Stripe SDK contract sends exact amount, metadata, URLs, and stable idempot
       .send({})
       .expect(200)
   ).body;
-  const p = f.service.required("payments", link.id),
+  const p = await f.service.required("payments", link.id),
     body = new URLSearchParams(h.calls[0].body);
   assert.equal(body.get("mode"), "payment");
   assert.equal(
@@ -97,13 +108,17 @@ test("Stripe SDK contract sends exact amount, metadata, URLs, and stable idempot
 });
 test("Stripe webhooks require valid fresh signatures, full matching amounts, and paid state", async (t) => {
   const h = stripeHarness(),
-    g = createGateways(stripeConfig, { stripeClient: h.client }),
-    f = await fixture(t, stripeConfig, { gateways: g }),
+    g = createGateways(stripeConfig, {
+      stripeClient: h.client,
+    }),
+    f = await fixture(t, stripeConfig, {
+      gateways: g,
+    }),
     r = await rental(f, "stripe");
   const link = (
       await f.employee.post(`/api/rentals/${r.id}/payments/link`).send({})
     ).body,
-    p = f.service.required("payments", link.id);
+    p = await f.service.required("payments", link.id);
   const emit = async (
     session,
     { id = "evt_contract", signature, timestamp } = {},
@@ -111,14 +126,20 @@ test("Stripe webhooks require valid fresh signatures, full matching amounts, and
     const payload = JSON.stringify({
       id,
       type: "checkout.session.completed",
-      data: { object: session },
+      data: {
+        object: session,
+      },
     });
     const header =
       signature ||
       h.client.webhooks.generateTestHeaderString({
         payload,
         secret: "whsec_contract",
-        ...(timestamp ? { timestamp } : {}),
+        ...(timestamp
+          ? {
+              timestamp,
+            }
+          : {}),
       });
     return f.request
       .post("/api/payments/webhooks/stripe")
@@ -127,7 +148,11 @@ test("Stripe webhooks require valid fresh signatures, full matching amounts, and
       .send(payload);
   };
   assert.equal(
-    (await emit(paidSession(p), { signature: "invalid" })).status,
+    (
+      await emit(paidSession(p), {
+        signature: "invalid",
+      })
+    ).status,
     400,
   );
   assert.equal(
@@ -138,71 +163,114 @@ test("Stripe webhooks require valid fresh signatures, full matching amounts, and
     ).status,
     400,
   );
-  assert.equal((await emit(paidSession(p, { amount_total: 1 }))).status, 400);
-  assert.equal((await emit(paidSession(p, { livemode: true }))).status, 400);
   assert.equal(
     (
-      await emit(paidSession(p, { payment_status: "unpaid" }), {
-        id: "evt_unpaid",
-      })
+      await emit(
+        paidSession(p, {
+          amount_total: 1,
+        }),
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await emit(
+        paidSession(p, {
+          livemode: true,
+        }),
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await emit(
+        paidSession(p, {
+          payment_status: "unpaid",
+        }),
+        {
+          id: "evt_unpaid",
+        },
+      )
     ).status,
     200,
   );
-  assert.equal(f.service.rental(r.id).payments[0].status, "pending");
+  assert.equal((await f.service.rental(r.id)).payments[0].status, "pending");
   assert.equal((await emit(paidSession(p))).status, 200);
   assert.equal((await emit(paidSession(p))).status, 200);
-  assert.equal(f.service.rental(r.id).payments[0].status, "paid");
+  assert.equal((await f.service.rental(r.id)).payments[0].status, "paid");
   assert.equal(
-    f.service.get(
-      "SELECT COUNT(*) AS n FROM webhook_events WHERE provider='stripe'",
+    (
+      await f.service.get(
+        "SELECT COUNT(*) AS n FROM webhook_events WHERE provider='stripe'",
+      )
     ).n,
     1,
   );
   assert.equal(
-    f.service.get(
-      "SELECT COUNT(*) AS n FROM audit_log WHERE action='payment.verified'",
+    (
+      await f.service.get(
+        "SELECT COUNT(*) AS n FROM audit_log WHERE action='payment.verified'",
+      )
     ).n,
     1,
   );
 });
 test("Stripe reconciliation retrieves the saved session and rejects a forged redirect", async (t) => {
   const h = stripeHarness(),
-    g = createGateways(stripeConfig, { stripeClient: h.client }),
-    f = await fixture(t, stripeConfig, { gateways: g }),
+    g = createGateways(stripeConfig, {
+      stripeClient: h.client,
+    }),
+    f = await fixture(t, stripeConfig, {
+      gateways: g,
+    }),
     r = await rental(f, "stripe");
   const link = (
       await f.employee.post(`/api/rentals/${r.id}/payments/link`).send({})
     ).body,
-    p = f.service.required("payments", link.id);
+    p = await f.service.required("payments", link.id);
   h.set(paidSession(p));
   await f.request
     .post(`/api/checkout/${p.public_token}/reconcile`)
-    .send({ sessionId: "other_session" })
+    .send({
+      sessionId: "other_session",
+    })
     .expect(400);
   await f.request
     .post(`/api/checkout/${p.public_token}/reconcile`)
-    .send({ sessionId: p.external_id })
+    .send({
+      sessionId: p.external_id,
+    })
     .expect(200);
-  assert.equal(f.service.rental(r.id).payments[0].status, "paid");
+  assert.equal((await f.service.rental(r.id)).payments[0].status, "paid");
 });
 test("cancelled Stripe link expires at the provider before releasing rental terms", async (t) => {
   const h = stripeHarness(),
-    g = createGateways(stripeConfig, { stripeClient: h.client }),
-    f = await fixture(t, stripeConfig, { gateways: g }),
+    g = createGateways(stripeConfig, {
+      stripeClient: h.client,
+    }),
+    f = await fixture(t, stripeConfig, {
+      gateways: g,
+    }),
     r = await rental(f, "stripe");
   const link = (
       await f.employee.post(`/api/rentals/${r.id}/payments/link`).send({})
     ).body,
-    p = f.service.required("payments", link.id);
-  h.set(paidSession(p, { status: "open", payment_status: "unpaid" }));
+    p = await f.service.required("payments", link.id);
+  h.set(
+    paidSession(p, {
+      status: "open",
+      payment_status: "unpaid",
+    }),
+  );
   await f.employee
     .post(`/api/rentals/${r.id}/payments/cancel`)
     .send({})
     .expect(200);
   assert.ok(h.calls.some((c) => c.url.endsWith("/expire")));
-  assert.equal(f.service.rental(r.id).payments[0].status, "cancelled");
+  assert.equal((await f.service.rental(r.id)).payments[0].status, "cancelled");
 });
-
 function paypalHarness({
   signature = "SUCCESS",
   wrongAmount = false,
@@ -223,9 +291,14 @@ function paypalHarness({
       headers: init.headers,
     });
     if (path === "/v1/oauth2/token")
-      return json({ access_token: "contract_token", expires_in: 3600 });
+      return json({
+        access_token: "contract_token",
+        expires_in: 3600,
+      });
     if (path === "/v1/notifications/verify-webhook-signature")
-      return json({ verification_status: signature });
+      return json({
+        verification_status: signature,
+      });
     if (path === "/v2/checkout/orders" && init.method === "POST") {
       order = {
         id: "ORDERCONTRACT",
@@ -284,31 +357,44 @@ const paypalConfig = {
   paypalSecret: "test_secret",
   paypalWebhookId: "WH-CONTRACT",
 };
-
 test("PayPal creation rejection releases the unpaid rental for correction", async (t) => {
   const h = paypalHarness();
   const g = createGateways(paypalConfig, {
     fetcher: async (url, init) =>
       new URL(url).pathname === "/v2/checkout/orders" && init.method === "POST"
-        ? json({ name: "UNPROCESSABLE_ENTITY" }, 422)
+        ? json(
+            {
+              name: "UNPROCESSABLE_ENTITY",
+            },
+            422,
+          )
         : h.fetcher(url, init),
   });
-  const f = await fixture(t, paypalConfig, { gateways: g }),
+  const f = await fixture(t, paypalConfig, {
+      gateways: g,
+    }),
     r = await rental(f, "paypal");
   await f.employee
     .post(`/api/rentals/${r.id}/payments/link`)
     .send({})
     .expect(400);
-  assert.equal(f.service.rental(r.id).payments[0].status, "failed");
+  assert.equal((await f.service.rental(r.id)).payments[0].status, "failed");
   await f.employee
     .patch(`/api/rentals/${r.id}`)
-    .send({ ...r, paymentMethod: "cash" })
+    .send({
+      ...r,
+      paymentMethod: "cash",
+    })
     .expect(200);
 });
 test("PayPal OAuth/create/approve/capture contract uses fixed amount and idempotency", async (t) => {
   const h = paypalHarness(),
-    g = createGateways(paypalConfig, { fetcher: h.fetcher }),
-    f = await fixture(t, paypalConfig, { gateways: g }),
+    g = createGateways(paypalConfig, {
+      fetcher: h.fetcher,
+    }),
+    f = await fixture(t, paypalConfig, {
+      gateways: g,
+    }),
     r = await rental(f, "paypal");
   const link = (
       await f.employee
@@ -316,7 +402,7 @@ test("PayPal OAuth/create/approve/capture contract uses fixed amount and idempot
         .send({})
         .expect(200)
     ).body,
-    p = f.service.required("payments", link.id);
+    p = await f.service.required("payments", link.id);
   const create = h.calls.find((c) => c.path === "/v2/checkout/orders");
   assert.equal(create.body.intent, "CAPTURE");
   assert.equal(create.body.purchase_units[0].amount.value, "90.00");
@@ -328,12 +414,14 @@ test("PayPal OAuth/create/approve/capture contract uses fixed amount and idempot
   assert.equal(create.headers["PayPal-Request-Id"], p.id);
   await f.request
     .post(`/api/checkout/${p.public_token}/capture`)
-    .send({ orderId: "FORGED" })
+    .send({
+      orderId: "FORGED",
+    })
     .expect(400);
   const captures = await Promise.all([
-    f.request
-      .post(`/api/checkout/${p.public_token}/capture`)
-      .send({ orderId: p.external_id }),
+    f.request.post(`/api/checkout/${p.public_token}/capture`).send({
+      orderId: p.external_id,
+    }),
     f.request.post(`/api/checkout/${p.public_token}/capture`).send({}),
   ]);
   assert.ok(captures.every((c) => c.status === 200));
@@ -344,17 +432,21 @@ test("PayPal OAuth/create/approve/capture contract uses fixed amount and idempot
     ],
     `${p.id}:capture`,
   );
-  assert.equal(f.service.rental(r.id).payments[0].status, "paid");
+  assert.equal((await f.service.rental(r.id)).payments[0].status, "paid");
 });
 test("PayPal completed webhook requires successful provider signature verification", async (t) => {
   const h = paypalHarness(),
-    g = createGateways(paypalConfig, { fetcher: h.fetcher }),
-    f = await fixture(t, paypalConfig, { gateways: g }),
+    g = createGateways(paypalConfig, {
+      fetcher: h.fetcher,
+    }),
+    f = await fixture(t, paypalConfig, {
+      gateways: g,
+    }),
     r = await rental(f, "paypal");
   const link = (
       await f.employee.post(`/api/rentals/${r.id}/payments/link`).send({})
     ).body,
-    p = f.service.required("payments", link.id);
+    p = await f.service.required("payments", link.id);
   await f.request
     .post(`/api/checkout/${p.public_token}/capture`)
     .send({})
@@ -365,8 +457,15 @@ test("PayPal completed webhook requires successful provider signature verificati
     resource: {
       id: "CAPTURECONTRACT",
       status: "COMPLETED",
-      amount: { value: "90.00", currency_code: "USD" },
-      supplementary_data: { related_ids: { order_id: p.external_id } },
+      amount: {
+        value: "90.00",
+        currency_code: "USD",
+      },
+      supplementary_data: {
+        related_ids: {
+          order_id: p.external_id,
+        },
+      },
     },
   };
   await f.request.post("/api/payments/webhooks/paypal").send(event).expect(400);
@@ -387,37 +486,51 @@ test("PayPal completed webhook requires successful provider signature verificati
   assert.equal(verification.body.webhook_id, "WH-CONTRACT");
   assert.equal(verification.body.webhook_event.id, event.id);
   assert.equal(
-    f.service.get(
-      "SELECT COUNT(*) AS n FROM webhook_events WHERE provider='paypal'",
+    (
+      await f.service.get(
+        "SELECT COUNT(*) AS n FROM webhook_events WHERE provider='paypal'",
+      )
     ).n,
     1,
   );
 });
 test("PayPal rejects incorrect captured amount and locks an uncertain capture for verification", async (t) => {
-  const h = paypalHarness({ wrongAmount: true }),
-    g = createGateways(paypalConfig, { fetcher: h.fetcher }),
-    f = await fixture(t, paypalConfig, { gateways: g }),
+  const h = paypalHarness({
+      wrongAmount: true,
+    }),
+    g = createGateways(paypalConfig, {
+      fetcher: h.fetcher,
+    }),
+    f = await fixture(t, paypalConfig, {
+      gateways: g,
+    }),
     r = await rental(f, "paypal");
   const link = (
       await f.employee.post(`/api/rentals/${r.id}/payments/link`).send({})
     ).body,
-    p = f.service.required("payments", link.id);
+    p = await f.service.required("payments", link.id);
   await f.request
     .post(`/api/checkout/${p.public_token}/capture`)
     .send({})
     .expect(400);
-  assert.equal(f.service.rental(r.id).payments[0].status, "processing");
+  assert.equal((await f.service.rental(r.id)).payments[0].status, "processing");
   await f.employee.post(`/api/rentals/${r.id}/cancel`).send({}).expect(409);
 });
 test("cancellation cannot race an in-flight PayPal capture", async (t) => {
-  const h = paypalHarness({ delayCapture: true }),
-    g = createGateways(paypalConfig, { fetcher: h.fetcher }),
-    f = await fixture(t, paypalConfig, { gateways: g }),
+  const h = paypalHarness({
+      delayCapture: true,
+    }),
+    g = createGateways(paypalConfig, {
+      fetcher: h.fetcher,
+    }),
+    f = await fixture(t, paypalConfig, {
+      gateways: g,
+    }),
     r = await rental(f, "paypal");
   const link = (
       await f.employee.post(`/api/rentals/${r.id}/payments/link`).send({})
     ).body,
-    p = f.service.required("payments", link.id);
+    p = await f.service.required("payments", link.id);
   const capturing = f.request
     .post(`/api/checkout/${p.public_token}/capture`)
     .send({})
@@ -434,10 +547,15 @@ test("PayPal OAuth caches credentials and refreshes once on 401", async () => {
     calls = 0;
   const client = new PayPalClient(paypalConfig, async (url) =>
     new URL(url).pathname === "/v1/oauth2/token"
-      ? json({ access_token: `token${++tokens}`, expires_in: 3600 })
+      ? json({
+          access_token: `token${++tokens}`,
+          expires_in: 3600,
+        })
       : ++calls === 1
         ? json({}, 401)
-        : json({ id: "ok" }),
+        : json({
+            id: "ok",
+          }),
   );
   assert.equal((await client.request("/v2/checkout/orders/ID")).id, "ok");
   assert.equal(tokens, 2);
